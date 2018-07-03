@@ -1,0 +1,22 @@
+name='database'
+
+vip_name="vip__$name"
+host_eth="v_$name"
+ns_eth="b_$name"
+ip=
+
+crm configure primitive $vip_name ocf:fuel:ns_IPaddr2 \
+params base_veth=$host_eth bridge=br-mgmt cidr_netmask=24 gateway=none gateway_metric=0 iflabel=ka ip=$ip iptables_comment=undef ns=haproxy ns_iptables_start_rules=undef ns_iptables_stop_rules=undef ns_veth=$ns_eth other_networks=undef \
+meta failure-timeout=60 migration-threshold=3 resource-stickiness=1 target-role=Started \
+op monitor interval=5 timeout=20 \
+op start interval=0 timeout=30 \
+op stop interval=0 timeout=30
+
+crm configure location vip__management-on-node-10.domain.tld vip__management 100: node-10.domain.tld
+crm configure location vip__management-on-node-11.domain.tld vip__management 100: node-11.domain.tld
+crm configure location vip__management-on-node-9.domain.tld vip__management 100: node-9.domain.tld
+
+colocation vip_management-with-haproxy inf: vip__management clone_p_haproxy
+
+
+crm configure commit

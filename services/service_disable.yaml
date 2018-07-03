@@ -1,0 +1,81 @@
+systemd:
+  keystone: 
+    - openstack-keystone
+  glance:
+    - openstack-glance-api
+    - openstack-glance-registry
+    - openstack-glance-glare
+    - openstack-glance-scrubber
+  nova:
+    - openstack-nova-api
+    - openstack-nova-cert
+    - openstack-nova-compute
+    - openstack-nova-console
+    - openstack-nova-consoleauth
+    - openstack-nova-scheduler
+    - openstack-nova-conductor
+    - openstack-nova-novncproxy
+    - openstack-nova-xvpvncproxy
+    - openstack-nova-metadata-api
+    - openstack-nova-os-compute-api
+  neutron:
+    - neutron-l3-agent
+    - neutron-lbaas-agent
+    - neutron-lbaasv2-agent
+    - neutron-server
+    - neutron-dhcp-agent
+    - neutron-metadata-agent
+    - neutron-openvswitch-agent
+    - neutron-linuxbridge-cleanup
+    - neutron-netns-cleanup
+    - neutron-ovs-cleanup
+  horizon:
+    - httpd 
+  cinder:
+    - openstack-cinder-api
+    - openstack-cinder-scheduler
+    - openstack-cinder-backup
+    - openstack-cinder-volume
+  heat:
+    - openstack-heat-api
+    - openstack-heat-api-cfn
+    - openstack-heat-api-cloudwatch
+    - openstack-heat-engine
+  ceilometer:
+    - openstack-ceilometer-api
+    - openstack-ceilometer-notification
+    - openstack-ceilometer-central
+    - openstack-ceilometer-collector
+    - openstack-ceilometer-polling
+  aodh:
+    - openstack-aodh-api
+    - openstack-aodh-evaluator
+    - openstack-aodh-listener
+    - openstack-aodh-notifier
+  trove:
+    - openstack-trove-api
+    - openstack-trove-conductor
+    - openstack-trove-taskmanager
+  sahara:
+    - openstack-sahara-api
+    - openstack-sahara-engine
+  magnum:
+    - openstack-magnum-api
+    - openstack-magnum-conductor
+  ironic:
+    - openstack-ironic-api
+    - openstack-ironic-conductor
+  chakra:
+    - openstack-chakra-api
+  ceph:
+    - ceph.target 
+    - ceph-mds.target
+    - ceph-mon.target
+    - ceph-osd.target
+    - ceph-radosgw.target 
+  common:
+    - libvirtd
+    - mcollective
+    - httpd
+    - mongod
+    - easystack-ticket

@@ -1,0 +1,66 @@
+systemd:
+  controller:
+    keystone: 
+      - openstack-keystone
+    glance:
+      - openstack-glance-api
+      - openstack-glance-registry
+    nova:
+      - openstack-nova-api
+      - openstack-nova-cert
+      - openstack-nova-consoleauth
+      - openstack-nova-scheduler
+      - openstack-nova-conductor
+      - openstack-nova-novncproxy
+    neutron:
+      - neutron-l3-agent
+      - neutron-lbaasv2-agent
+      - neutron-server
+      - neutron-dhcp-agent
+      - neutron-metadata-agent
+      - neutron-openvswitch-agent
+    cinder:
+      - openstack-cinder-api
+      - openstack-cinder-scheduler
+      - openstack-cinder-backup
+      - openstack-cinder-volume
+    heat:
+      - openstack-heat-api
+      - openstack-heat-api-cfn
+      - openstack-heat-api-cloudwatch
+    ceilometer:
+      - openstack-ceilometer-api
+      - openstack-ceilometer-notification
+      - openstack-ceilometer-collector
+    aodh:
+      - openstack-aodh-api
+      - openstack-aodh-listener
+      - openstack-aodh-notifier
+    trove:
+      - openstack-trove-api
+      - openstack-trove-conductor
+      - openstack-trove-taskmanager
+    sahara:
+      - openstack-sahara-api
+      - openstack-sahara-engine
+    ironic:
+      - openstack-ironic-api
+    chakra:
+      - openstack-chakra-api
+  compute:
+    nova:
+      - openstack-nova-compute
+    neutron:
+      - neutron-openvswitch-agent
+    ceilometer:
+      - openstack-ceilometer-compute
+pacemaker:
+    - p_openstack-ceilometer-central
+    - p_openstack-aodh-evaluator
+    - p_openstack-heat-engine
+    - p_magnum-key-lsyncd
+    - p_magnum-conductor
+    - p_nova-compute
+    - p_ironic-conductor
+    - p_ironic-tftp-lsyncd
+    - easystack-hagent
