@@ -19,6 +19,7 @@ def _collect_nodes_infos():
         name = name_ip[0].strip().lower()
         pxe_ip = name_ip[1].strip()
         mgmt_ip = os.popen("ssh %s ifconfig br-mgmt | grep 'inet ' | awk '{print $2}'" %pxe_ip).read().strip()
+        store_ip = os.popen("ssh %s ifconfig br-storagepub | grep 'inet ' | awk '{print $2}'" %pxe_ip).read().strip()
         hostname = os.popen("ssh %s hostname" %pxe_ip).read().strip()
         role='other'
         if 'controller' in name or 'contr' in name:
@@ -33,7 +34,9 @@ def _collect_nodes_infos():
             role='mongo'
         elif 'neutron-l3' in name or 'neutron' in name or 'neut' in name:
             role='neutron-l3'
-        node={'mgmt_ip':mgmt_ip,'pxe_ip':pxe_ip,'hostname':hostname}
+        elif 'osd' in name:
+            role='storage'
+        node={'mgmt_ip':mgmt_ip,'store_ip':store_ip,'pxe_ip':pxe_ip,'hostname':hostname}
         if role not in roles_to_nodes.keys():
             roles_to_nodes[role]=[node]
         else:
@@ -55,7 +58,8 @@ def write_infos_to_file():
                 rabbitmq_count = rabbitmq_count + 1
             else:
                 new_role=role
-            cmd = "echo %s %s %s %s >> nodes.txt" %(node['mgmt_ip'],node['pxe_ip'],node['hostname'],new_role)
+            cmd = "echo %s %s %s %s %s>> nodes.txt" %(node['mgmt_ip'],node['pxe_ip'],\
+                  node['store_ip'],node['hostname'],,new_role)
             os.system(cmd)
 
 def output_infos():

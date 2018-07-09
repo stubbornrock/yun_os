@@ -23,7 +23,7 @@ Note(){
 # prepare
 ############################
 function _copy_files(){
-    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute'| awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute|storage'| awk '{print $2}'`;do
         echo_info "***** Copy update scripts to :[$pxe_ip] *****"
         ssh $pxe_ip "mkdir -p $DEST_DIR;rm -rf $DEST_DIR/*"
         scp -r ./* $pxe_ip:$DEST_DIR/
@@ -56,16 +56,21 @@ function _controller_update_haproxy_files(){
         ssh $pxe_ip "sh $DEST_DIR/controller/controller_haproxy.sh"
     done 
 }
-function _controller_close_neutron_l3(){
+function _close_independent_controller_services(){
     Note "Close neutron-l3 services on controller node"
     for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
-        ssh $pxe_ip "sh $DEST_DIR/controller/controller_close_services.sh"
+        ssh $pxe_ip "sh $DEST_DIR/services/service_independent_close.sh"
     done
 }
 function _controller_delete_agent(){
     Note "Remove mariadb|rabbitmq database openstack service/agent"
     pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
-    ssh $pxe_ip "sh $DEST_DIR/controller/controller_post.sh"
+    ssh $pxe_ip "sh $DEST_DIR/controller/controller_delete_agent.sh"
+}
+function _controller_enable_agent(){
+    Note "Remove mariadb|rabbitmq database openstack service/agent"
+    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    ssh $pxe_ip "sh $DEST_DIR/controller/controller_enable_agent.sh"
 }
 function controller_check(){
     Note "Controller state Check!"
@@ -141,7 +146,7 @@ function _rabbitmq_node_out_from_cluster1(){
 function _forget_rabbitmq_nodes_from_cluster1(){
     Note "rabbitmq cluster1 forget nodes"
     pxe_ip=`cat nodes.txt | egrep 'rabbitmq1' | awk '{print $2}'|head -1`
-    for hostname in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq2' | awk '{print $3}'`;do
+    for hostname in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq2' | awk '{print $4}'`;do
         hostname_list=(${hostname//./ })
         short_hostname=${hostname_list[0]}
         rabbitmq_host="rabbit@$short_hostname"
@@ -151,7 +156,7 @@ function _forget_rabbitmq_nodes_from_cluster1(){
 function _update_rabbitmq_cluster1(){
     Note "Update new rabbitmq cluster1 configs"
     rabbitmq1_cluster_nodes=""
-    for hostname in `cat nodes.txt | egrep 'rabbitmq1' | awk '{print $3}'`;do
+    for hostname in `cat nodes.txt | egrep 'rabbitmq1' | awk '{print $4}'`;do
         hostname_list=(${hostname//./ })
         short_hostname=${hostname_list[0]}
         rabbitmq_host="'rabbit@$short_hostname'"
@@ -185,7 +190,7 @@ rabbitmq1(){
 function _create_new_rabbitmq_cluster2(){
     Note "Create new rabbitmq cluster2"
     rabbitmq2_cluster_nodes=""
-    for hostname in `cat nodes.txt | egrep 'rabbitmq2' | awk '{print $3}'`;do
+    for hostname in `cat nodes.txt | egrep 'rabbitmq2' | awk '{print $4}'`;do
         hostname_list=(${hostname//./ })
         short_hostname=${hostname_list[0]}
         rabbitmq_host="'rabbit@$short_hostname'"
@@ -211,6 +216,8 @@ function _update_service_notification_transport(){
         echo_info "---------- [node: $pxe_ip] ----------" 
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_tranport.sh add"
     done
+}
+function _rabbitmq2_used_by_services(){
     for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
         echo_info "---------- [controller: $pxe_ip] ----------" 
         ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=controller --type=systemd"
@@ -238,11 +245,58 @@ rabbitmq2(){
 }
 
 ############################
+# ceph service
+############################
+function _ceph_rm_mon(){
+    Note "Exec remove ceph monitors"
+    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_rm_mon.sh"
+}
+function _update_ceph_conf(){
+    Note "Update /etc/ceph/ceph.conf conf files"
+    for pxe_ip in `cat nodes.txt | egrep 'controller|rabbitmq|mariadb|compute|storage' | awk '{print $2}'`;do
+        echo_info "---------- [ceph: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_update_conf.sh"
+    done
+}
+function _disable_ceph_services(){
+    Note "Stop disable mariadb/rabbitmq[1|2] files"
+    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq|mariadb' | awk '{print $2}'`;do
+        echo_info "---------- [ceph: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_disable_service.sh disable"
+    done
+}
+ceph_check(){
+    Note "Check ceph monitors"
+    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    ssh $pxe_ip "ceph -s"
+
+    Note "Check /etc/ceph/ceph.conf conf"
+    for pxe_ip in `cat nodes.txt | egrep 'controller|rabbitmq|mariadb|compute|storage' | awk '{print $2}'`;do
+        echo_info "---------- [ceph: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/ceph/check.sh"
+    done
+    
+    Note "Check disable mariadb/rabbitmq[1|2] files"
+    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq|mariadb' | awk '{print $2}'`;do
+        echo_info "---------- [ceph: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_disable_service.sh check"
+    done
+}
+ceph(){
+    _ceph_rm_mon
+    _update_ceph_conf
+    _disable_ceph_services
+}
+
+############################
 # post
 ############################
 function post(){
     _controller_delete_agent
-    _controller_close_neutron_l3
+    _close_independent_controller_services
+    _controller_enable_agent
+    _rabbitmq2_used_by_services
 }
 
 ############################
@@ -261,7 +315,7 @@ function check(){
 function validate(){
     local action=$1
     local result=false
-    actions=("--install" "--check")
+    actions=("--update" "--check")
     for a in ${actions[@]};do
         if [[ $a == $action ]];then result=true;break;fi
     done
@@ -269,15 +323,14 @@ function validate(){
 }
 function usage(){
     echo_warn "Usage:"
-    echo_warn "./run.sh prepare                         :sync time and prepare scripts"
-    echo_warn "./run.sh controller [--install|--check]  :clear pacemaker resources,update haproxy files"
-    echo_warn "./run.sh mariadb    [--install|--check]  :setup new mariadb cluster on database nodes"
-    echo_warn "./run.sh rabbitmq1  [--install|--check]  :reduce rabbitmqcluster to 3 node on rabbitmq1 cluster"
-    echo_warn "./run.sh rabbitmq2  [--install|--check]  :setup new rabbitmq custer,set permissions,policies"
-    echo_warn "./run.sh post                            :before test, disable,clean some services"
+    echo_warn "./run.sh prepare                       :sync time and prepare scripts"
+    echo_warn "./run.sh controller [--update|--check] :clear pacemaker resources,update haproxy files"
+    echo_warn "./run.sh mariadb    [--update|--check] :setup new mariadb cluster on database nodes"
+    echo_warn "./run.sh rabbitmq1  [--update|--check] :reduce rabbitmqcluster to 3 node on rabbitmq1 cluster"
+    echo_warn "./run.sh rabbitmq2  [--update|--check] :setup new rabbitmq custer,set permissions,policies"
+    echo_warn "./run.sh ceph       [--update|--check] :disable mariadb/rabbitmq ceph services and update all node ceph.conf"
+    echo_warn "./run.sh post                          :before test, disable,clean some services"
 }
-
-
 
 # ---------- Main ----------
 if [[ $# -eq 0 || $# -gt 2 ]]; then usage;exit;fi
@@ -289,28 +342,34 @@ if [[ $# -eq 2 ]];then
 fi
 if   [[ $role == "prepare" ]];then prepare
 elif [[ $role == "controller" ]];then
-    if [[ $action == "--install" ]];then
+    if [[ $action == "--update" ]];then
         controller
     elif [[ $action == "--check" ]];then
         controller_check
     fi
 elif [[ $role == "mariadb" ]];then
-    if [[ $action == "--install" ]];then
+    if [[ $action == "--update" ]];then
         mariadb
     elif [[ $action == "--check" ]];then
         mariadb_check
     fi
 elif [[ $role == "rabbitmq1" ]];then
-    if [[ $action == "--install" ]];then
+    if [[ $action == "--update" ]];then
         rabbitmq1
     elif [[ $action == "--check" ]];then
         rabbitmq1_check
     fi
 elif [[ $role == "rabbitmq2" ]]; then
-    if [[ $action == "--install" ]];then
+    if [[ $action == "--update" ]];then
         rabbitmq2
     elif [[ $action == "--check" ]];then
         rabbitmq2_check
+    fi
+elif [[ $role == "ceph" ]]; then
+    if [[ $action == "--update" ]];then
+        ceph
+    elif [[ $action == "--check" ]];then
+        ceph_check
     fi
 elif [[ $role == "post" ]];then post
 else usage

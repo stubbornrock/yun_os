@@ -19,12 +19,13 @@ systemd:
     - openstack-nova-metadata-api
     - openstack-nova-os-compute-api
   neutron:
-    - neutron-l3-agent
+    # delete after clean router
+    #- neutron-l3-agent
+    #- neutron-dhcp-agent
+    #- neutron-metadata-agent
     - neutron-lbaas-agent
     - neutron-lbaasv2-agent
     - neutron-server
-    - neutron-dhcp-agent
-    - neutron-metadata-agent
     - neutron-openvswitch-agent
     - neutron-linuxbridge-cleanup
     - neutron-netns-cleanup
@@ -67,15 +68,8 @@ systemd:
     - openstack-ironic-conductor
   chakra:
     - openstack-chakra-api
-  ceph:
-    - ceph.target 
-    - ceph-mds.target
-    - ceph-mon.target
-    - ceph-osd.target
-    - ceph-radosgw.target 
   common:
     - libvirtd
-    - mcollective
     - httpd
     - mongod
     - easystack-ticket

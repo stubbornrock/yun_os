@@ -7,10 +7,7 @@ force_kill(){
               "ironic-tftp-lsyncd"\ 
               "heat-engine"\ 
               "aodh-evaluator"\ 
-              "ceilometer-polling"\ 
-              "neutron-ns-metadata-proxy"\ 
-              "neutron-rootwrap-daemon"\ 
-              "neutron-rootwrap")
+              "ceilometer-polling")
     for s in ${services[@]};do
         killall -9 $s
     done

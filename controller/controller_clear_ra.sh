@@ -3,7 +3,7 @@ set -x
 INVENTORY="/tmp/yun_os/nodes.txt"
 clear_pacemaker_ra(){
     # delete resource
-    for name in `cat ${INVENTORY} | egrep 'mariadb|rabbitmq' | awk '{print $3}'`;do
+    for name in `cat ${INVENTORY} | egrep 'mariadb|rabbitmq' | awk '{print $4}'`;do
         echo "---------- pacemaker clear $name resources ----------"
         crm configure delete easystack-hagent-on-$name
         crm configure delete p_ironic-conductor-on-$name
