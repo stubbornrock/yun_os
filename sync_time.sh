@@ -1,4 +1,4 @@
-TEMP_FILE='tmp/pxe_ips.txt'
+TEMP_FILE='/tmp/pxe_ips.txt'
 mkdir -p tmp
 rm -rf $TEMP_FILE
 roller node | cut -d '|' -f5 > $TEMP_FILE
