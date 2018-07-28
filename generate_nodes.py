@@ -21,26 +21,27 @@ def _collect_nodes_infos():
         mgmt_ip = os.popen("ssh %s ifconfig br-mgmt | grep 'inet ' | awk '{print $2}'" %pxe_ip).read().strip()
         store_ip = os.popen("ssh %s ifconfig br-storagepub | grep 'inet ' | awk '{print $2}'" %pxe_ip).read().strip()
         hostname = os.popen("ssh %s hostname" %pxe_ip).read().strip()
-        role='other'
+        roles=[]
         if 'controller' in name or 'contr' in name:
-            role='controller'
+            roles.append('controller')
         if 'rabbit' in name or 'rab' in name:
-            role='rabbitmq'
-        elif 'mariadb' in name or 'mysql' in name or 'mar' in name:
-            role='mariadb'
-        elif 'compute' in name or 'comp' in name:
-            role='compute'
-        elif 'mongo' in name or 'mong' in name:
-            role='mongo'
-        elif 'neutron-l3' in name or 'neutron' in name or 'neut' in name:
-            role='neutron-l3'
-        elif 'osd' in name:
-            role='storage'
-        node={'mgmt_ip':mgmt_ip,'store_ip':store_ip,'pxe_ip':pxe_ip,'hostname':hostname}
-        if role not in roles_to_nodes.keys():
-            roles_to_nodes[role]=[node]
-        else:
-            roles_to_nodes[role].append(node) 
+            roles.append('rabbitmq')
+        if 'mariadb' in name or 'mysql' in name or 'mar' in name:
+            roles.append('mariadb')
+        if 'compute' in name or 'comp' in name:
+            roles.append('compute')
+        if 'mongo' in name or 'mong' in name:
+            roles.append('mongo')
+        if 'neutron-l3' in name or 'neutron' in name or 'neut' in name:
+            roles.append('neutron-l3')
+        if 'osd' in name:
+            roles.append('storage')
+        for role in roles:
+            node={'mgmt_ip':mgmt_ip,'store_ip':store_ip,'pxe_ip':pxe_ip,'hostname':hostname}
+            if role not in roles_to_nodes.keys():
+                roles_to_nodes[role]=[node]
+            else:
+                roles_to_nodes[role].append(node) 
     return roles_to_nodes
 
 def write_infos_to_file():
@@ -59,7 +60,7 @@ def write_infos_to_file():
             else:
                 new_role=role
             cmd = "echo %s %s %s %s %s>> nodes.txt" %(node['mgmt_ip'],node['pxe_ip'],\
-                  node['store_ip'],node['hostname'],,new_role)
+                  node['store_ip'],node['hostname'],new_role)
             os.system(cmd)
 
 def output_infos():

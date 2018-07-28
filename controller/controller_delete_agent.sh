@@ -26,7 +26,7 @@ function delete_neutron_agent(){
 
 function delete_neutron_router(){
     source /root/openrc
-    for id in `neutron router-list -field id -f value`;do
+    for id in `neutron router-list --field id -f value`;do
         neutron router-delete $id
     done
 }

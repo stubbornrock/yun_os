@@ -1,7 +1,6 @@
 #!/bin/bash
 INVENTORY="/tmp/yun_os/nodes.txt"
-#HAPROXY_DIR='/etc/haproxy/conf.d/'
-HAPROXY_DIR='/root/guowang/controller/controller_etc/haproxy/conf.d'
+HAPROXY_DIR='/etc/haproxy/conf.d/'
 
 echo_warn(){
     echo -e "\033[33m$1\033[0m"

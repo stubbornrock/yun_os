@@ -56,19 +56,26 @@ function _controller_update_haproxy_files(){
         ssh $pxe_ip "sh $DEST_DIR/controller/controller_haproxy.sh"
     done 
 }
-function _close_independent_controller_services(){
+function _close_controller_services(){
     Note "Close neutron-l3 services on controller node"
     for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
-        ssh $pxe_ip "sh $DEST_DIR/services/service_independent_close.sh"
+        ssh $pxe_ip "sh $DEST_DIR/services/service_controller_close.sh"
     done
 }
+function _close_neutron_services(){
+    Note "Close neutron services on rabbitmq|mariadb node"
+    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq|mariadb' | awk '{print $2}'`;do
+        ssh $pxe_ip "sh $DEST_DIR/services/service_neutron_close.sh"
+    done
+}
+
 function _controller_delete_agent(){
-    Note "Remove mariadb|rabbitmq database openstack service/agent"
+    Note "Remove mariadb|rabbitmq openstack service/agent"
     pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
     ssh $pxe_ip "sh $DEST_DIR/controller/controller_delete_agent.sh"
 }
 function _controller_enable_agent(){
-    Note "Remove mariadb|rabbitmq database openstack service/agent"
+    Note "Enable mariadb|rabbitmq database openstack service/agent"
     pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
     ssh $pxe_ip "sh $DEST_DIR/controller/controller_enable_agent.sh"
 }
@@ -241,7 +248,6 @@ function rabbitmq2_check(){
 }
 rabbitmq2(){
     _create_new_rabbitmq_cluster2
-    _update_service_notification_transport
 }
 
 ############################
@@ -294,9 +300,11 @@ ceph(){
 ############################
 function post(){
     _controller_delete_agent
-    _close_independent_controller_services
+    _close_neutron_services
+    _close_controller_services
     _controller_enable_agent
-    _rabbitmq2_used_by_services
+    #_update_service_notification_transport
+    #_rabbitmq2_used_by_services
 }
 
 ############################
