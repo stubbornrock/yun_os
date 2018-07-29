@@ -36,6 +36,10 @@ def _collect_nodes_infos():
             roles.append('neutron-l3')
         if 'osd' in name:
             roles.append('storage')
+        if 'x-ceph' in name:
+            roles.append('xsky')
+        if not roles:
+            roles.append('other')
         for role in roles:
             node={'mgmt_ip':mgmt_ip,'store_ip':store_ip,'pxe_ip':pxe_ip,'hostname':hostname}
             if role not in roles_to_nodes.keys():

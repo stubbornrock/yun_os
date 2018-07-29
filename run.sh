@@ -23,7 +23,7 @@ Note(){
 # prepare
 ############################
 function _copy_files(){
-    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute|storage'| awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute|storage|xsky'| awk '{print $2}'`;do
         echo_info "***** Copy update scripts to :[$pxe_ip] *****"
         ssh $pxe_ip "mkdir -p $DEST_DIR;rm -rf $DEST_DIR/*"
         scp -r ./* $pxe_ip:$DEST_DIR/
@@ -38,7 +38,7 @@ function _sync_time(){
 }
 prepare(){
     Note "Prepare infos before to split controller/mongo/mariadb"
-    _sync_time
+    #_sync_time
     _copy_files
 }
 
@@ -68,7 +68,6 @@ function _close_neutron_services(){
         ssh $pxe_ip "sh $DEST_DIR/services/service_neutron_close.sh"
     done
 }
-
 function _controller_delete_agent(){
     Note "Remove mariadb|rabbitmq openstack service/agent"
     pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
@@ -117,14 +116,12 @@ function _mariadb_new_cluster(){
         fi
     done
 }
-
 function mariadb_check(){
     for pxe_ip in `cat nodes.txt | egrep 'mariadb' | awk '{print $2}'`;do
         echo_info "---------- [mariadb: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/mariadb/check.sh"
     done
 }
-
 function mariadb(){
     Note "Mariadb cluster"
     _mariadb_close_openstack_services
@@ -318,6 +315,20 @@ function check(){
 }
 
 ############################
+# storage bond split
+############################
+function _storage_bond_to_linux(){
+    Note "Change br-storage,br-storagepub from ovs to linux bond"
+    for pxe_ip in `cat nodes.txt | egrep 'xsky' | awk '{print $2}'`;do
+        echo_info "---------- [$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/bound/interface_bound.sh"
+    done
+}
+linux_bond(){
+    _storage_bond_to_linux
+}
+
+############################
 # menu
 ############################
 function validate(){
@@ -338,6 +349,7 @@ function usage(){
     echo_warn "./run.sh rabbitmq2  [--update|--check] :setup new rabbitmq custer,set permissions,policies"
     echo_warn "./run.sh ceph       [--update|--check] :disable mariadb/rabbitmq ceph services and update all node ceph.conf"
     echo_warn "./run.sh post                          :before test, disable,clean some services"
+    echo_warn "./run.sh linux_bond                    :Change ovs bond to linux bond"
 }
 
 # ---------- Main ----------
@@ -380,5 +392,6 @@ elif [[ $role == "ceph" ]]; then
         ceph_check
     fi
 elif [[ $role == "post" ]];then post
+elif [[ $role == "linux_bond" ]];then linux_bond
 else usage
 fi

@@ -17,6 +17,7 @@ clear_pacemaker_ra(){
         crm configure delete vip__management-on-$name
         crm configure delete vip__public-on-$name
         crm configure delete vip_no_ns__baremetal_mgmt-on-$name
+        crm configure delete clone_p_mysql-on-$name
     done
     ## restart resource
     crm resource restart easystack-hagent

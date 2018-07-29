@@ -48,10 +48,10 @@ _get_ovs_interfaces(){
     rm -rf $TMP_FILE
     echo "Information:"
     echo $BOUND $ETH1 $ETH2
-    read -p "Are U to Change $BOUND from ovs to linux (y/n): " c
-    if [[ $c != "y" ]];then
-        exit
-    fi
+    #read -p "Are U to Change $BOUND from ovs to linux (y/n): " c
+    #if [[ $c != "y" ]];then
+    #    exit
+    #fi
 }
 
 _generate_network_scripts(){
