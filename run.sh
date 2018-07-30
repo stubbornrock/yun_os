@@ -23,7 +23,7 @@ Note(){
 # prepare
 ############################
 function _copy_files(){
-    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute|storage|xsky'| awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute|storage|xceph'| awk '{print $2}'`;do
         echo_info "***** Copy update scripts to :[$pxe_ip] *****"
         ssh $pxe_ip "mkdir -p $DEST_DIR;rm -rf $DEST_DIR/*"
         scp -r ./* $pxe_ip:$DEST_DIR/
@@ -213,15 +213,8 @@ function _create_new_rabbitmq_cluster2(){
         fi
     done
 }
-function _update_service_notification_transport(){
-    Note "Update openstack service use notification_transport"
-    #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
-        echo_info "---------- [node: $pxe_ip] ----------" 
-        ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_tranport.sh add"
-    done
-}
-function _rabbitmq2_used_by_services(){
+
+function _restart_openstack_services(){
     for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
         echo_info "---------- [controller: $pxe_ip] ----------" 
         ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=controller --type=systemd"
@@ -245,6 +238,54 @@ function rabbitmq2_check(){
 }
 rabbitmq2(){
     _create_new_rabbitmq_cluster2
+}
+
+############################
+# update rabbitmq hosts
+############################
+function _update_service_notification_transport(){
+    Note "Update openstack service use notification_transport"
+    #rabbit://guest:guest@172.17.4.55:5673/
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+        echo_info "---------- [node: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_transport.sh add"
+    done
+}
+
+function _update_service_rpc_transport(){
+    Note "Update openstack service use rabbit_hosts"
+    #rabbit://guest:guest@172.17.4.55:5673/
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+        echo_info "---------- [node: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_rpc_transport.sh add"
+    done
+}
+
+function _restore_service_notification_transport(){
+    Note "Update openstack service use notification_transport"
+    #rabbit://guest:guest@172.17.4.55:5673/
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+        echo_info "---------- [node: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_transport.sh delete"
+    done
+}
+
+function _restore_service_rpc_transport(){
+    Note "Update openstack service use rabbit_hosts"
+    #rabbit://guest:guest@172.17.4.55:5673/
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+        echo_info "---------- [node: $pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_rpc_transport.sh delete"
+    done
+}
+
+rabbit_hosts_add(){
+    _update_service_notification_transport
+    _update_service_rpc_transport
+}
+rabbit_hosts_delete(){
+    _restore_service_notification_transport
+    _restore_service_rpc_transport
 }
 
 ############################
@@ -280,7 +321,7 @@ ceph_check(){
         ssh $pxe_ip "sh $DEST_DIR/ceph/check.sh"
     done
     
-    Note "Check disable mariadb/rabbitmq[1|2] files"
+    Note "Check disable mariadb/rabbitmq[1|2] services"
     for pxe_ip in `cat nodes.txt | egrep 'rabbitmq|mariadb' | awk '{print $2}'`;do
         echo_info "---------- [ceph: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_disable_service.sh check"
@@ -300,8 +341,7 @@ function post(){
     _close_neutron_services
     _close_controller_services
     _controller_enable_agent
-    #_update_service_notification_transport
-    #_rabbitmq2_used_by_services
+    #_restart_openstack_services
 }
 
 ############################
@@ -319,9 +359,9 @@ function check(){
 ############################
 function _storage_bond_to_linux(){
     Note "Change br-storage,br-storagepub from ovs to linux bond"
-    for pxe_ip in `cat nodes.txt | egrep 'xsky' | awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
         echo_info "---------- [$pxe_ip] ----------"
-        ssh $pxe_ip "sh $DEST_DIR/bound/interface_bound.sh"
+        ssh $pxe_ip "sh $DEST_DIR/bond/interface_bond.sh"
     done
 }
 linux_bond(){
@@ -334,7 +374,7 @@ linux_bond(){
 function validate(){
     local action=$1
     local result=false
-    actions=("--update" "--check")
+    actions=("--update" "--check" "--restore")
     for a in ${actions[@]};do
         if [[ $a == $action ]];then result=true;break;fi
     done
@@ -342,14 +382,16 @@ function validate(){
 }
 function usage(){
     echo_warn "Usage:"
-    echo_warn "./run.sh prepare                       :sync time and prepare scripts"
-    echo_warn "./run.sh controller [--update|--check] :clear pacemaker resources,update haproxy files"
-    echo_warn "./run.sh mariadb    [--update|--check] :setup new mariadb cluster on database nodes"
-    echo_warn "./run.sh rabbitmq1  [--update|--check] :reduce rabbitmqcluster to 3 node on rabbitmq1 cluster"
-    echo_warn "./run.sh rabbitmq2  [--update|--check] :setup new rabbitmq custer,set permissions,policies"
-    echo_warn "./run.sh ceph       [--update|--check] :disable mariadb/rabbitmq ceph services and update all node ceph.conf"
-    echo_warn "./run.sh post                          :before test, disable,clean some services"
-    echo_warn "./run.sh linux_bond                    :Change ovs bond to linux bond"
+    echo_warn "./run.sh prepare                           :sync time and prepare scripts"
+    echo_warn "./run.sh controller   [--update|--check]   :clear pacemaker resources,update haproxy files"
+    echo_warn "./run.sh mariadb      [--update|--check]   :setup new mariadb cluster on database nodes"
+    echo_warn "./run.sh rabbitmq1    [--update|--check]   :reduce rabbitmqcluster to 3 node on rabbitmq1 cluster"
+    echo_warn "./run.sh rabbitmq2    [--update|--check]   :setup new rabbitmq custer,set permissions,policies"
+    echo_warn "./run.sh ceph         [--update|--check]   :disable mariadb/rabbitmq ceph services and update all node ceph.conf"
+    echo_warn "./run.sh post                              :before test, disable,clean some services"
+    echo_warn "./run.sh linux_bond                        :Change ovs bond to linux bond"
+    echo_warn "./run.sh rabbit_hosts [--update|--restore] :Add notification_transport and change to rabbitmq host list"
+    echo_warn "./run.sh restart_services                  :restart controller compute openstack services"
 }
 
 # ---------- Main ----------
@@ -391,7 +433,16 @@ elif [[ $role == "ceph" ]]; then
     elif [[ $action == "--check" ]];then
         ceph_check
     fi
+elif [[ $role == "linux_bond" ]];then
+    linux_bond
+elif [[ $role == "rabbit_hosts" ]];then
+    if [[ $action == "--update" ]];then
+        rabbit_hosts_add
+    elif [[ $action == "--restore" ]];then
+        rabbit_hosts_delete
+    fi
+elif [[ $role == "restart_services" ]];then
+    _restart_openstack_services
 elif [[ $role == "post" ]];then post
-elif [[ $role == "linux_bond" ]];then linux_bond
 else usage
 fi

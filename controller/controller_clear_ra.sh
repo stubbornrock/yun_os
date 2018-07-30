@@ -17,8 +17,14 @@ clear_pacemaker_ra(){
         crm configure delete vip__management-on-$name
         crm configure delete vip__public-on-$name
         crm configure delete vip_no_ns__baremetal_mgmt-on-$name
+    done
+    ## mysql
+    crm resource stop p_mysql
+    for name in `cat ${INVENTORY} | egrep 'controller|mariadb|rabbitmq' | awk '{print $4}'`;do
         crm configure delete clone_p_mysql-on-$name
     done
+    crm configure delete clone_p_mysql
+    crm configure delete p_mysql
     ## restart resource
     crm resource restart easystack-hagent
     crm resource restart p_ironic-conductor
@@ -32,10 +38,6 @@ clear_pacemaker_ra(){
     crm resource restart vip__management
     crm resource restart vip__public
     crm resource restart vip_no_ns__baremetal_mgmt 
-    ## mysql
-    crm resource stop p_mysql
-    crm configure delete p_mysql
-    crm configure delete clone_p_mysql
     ## commit
     crm configure commit
     crm resource refresh

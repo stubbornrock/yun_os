@@ -1,4 +1,6 @@
 #!/bin/bash
+INVENTORY="/tmp/yun_os/nodes.txt"
+
 CONFIG_FILES=(
 "/etc/aodh/aodh.conf"
 "/etc/ceilometer/ceilometer.conf"
@@ -14,19 +16,32 @@ CONFIG_FILES=(
 "/etc/sahara/sahara.conf"
 )
 
-TRANSPORT_URL=""
+_backup_file(){
+    CFG=$1
+    CFG_BAK=${CFG}.bak
+    if [ ! -f "$CFG_BAK" ]; then
+        cp $CFG $CFG_BAK
+    fi
+}
+
+TRANSPORT_URL="rabbit://"
 generate_transport_url(){
-    rabbit_host=`egrep ^rabbit_host /etc/nova/nova.conf | cut -d'=' -f2 | cut -d':' -f1`
+    #rabbit_host=`egrep ^rabbit_host /etc/nova/nova.conf | cut -d'=' -f2 | cut -d':' -f1`
     rabbit_user='nova'
-    rabbit_port=5673
+    rabbit_port=5672
     rabbit_password=`egrep ^rabbit_password /etc/nova/nova.conf | cut -d'=' -f2`
-    TRANSPORT_URL="rabbit://${rabbit_user}:${rabbit_password}@${rabbit_host}:${rabbit_port}/"
+    for ip in `cat ${INVENTORY} | egrep 'rabbitmq2' | awk '{print $1}'`;do
+        TRANSPORT_URL="${TRANSPORT_URL}${rabbit_user}:${rabbit_password}@${ip}:${rabbit_port},"
+    done
+    TRANSPORT_URL=${TRANSPORT_URL%?}
+    TRANSPORT_URL=${TRANSPORT_URL}/
 }
 
 function add_notification_transport(){
     generate_transport_url
     for file in ${CONFIG_FILES[@]};do
         if [[ -f $file ]];then
+            _backup_file $file
             egrep -i ^notification_transport_url $file
             if [[ $? -eq 1 ]];then
                 echo "File $file [add] notification_transport_url=$TRANSPORT_URL"

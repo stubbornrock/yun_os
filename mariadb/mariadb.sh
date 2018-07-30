@@ -32,10 +32,17 @@ update_my_cnf(){
 run(){
     bootstrap=$1
     if $bootstrap;then
-        grep -n safe_to_bootstrap /var/lib/mysql/grastate.dat
-        if [[ $? -eq 1 ]];then
-            echo "safe_to_bootstrap: 1" >> /var/lib/mysql/grastate.dat
-        fi
+        while :
+        do 
+            grep -n safe_to_bootstrap /var/lib/mysql/grastate.dat
+            if [[ $? -ne 0 ]];then
+                echo "Add safe_to_bootstrap: 1 to /var/lib/mysql/grastate.dat"
+                echo "safe_to_bootstrap: 1" >> /var/lib/mysql/grastate.dat
+                sleep 5
+            else
+                break
+            fi
+        done
         is_exist=`ps -ef | grep -c wsrep-new-cluster`
         if [[ $is_exist -lt 2 ]];then
             /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mysql/plugin --user=mysql --wsrep-new-cluster &

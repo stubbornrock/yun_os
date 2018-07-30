@@ -132,7 +132,7 @@ def check_openstack_services(arguments):
         print "The following services have been installed in the system and need to define in yaml file:"
         for service in need_define:
             _service_show(service)
-        sys.exit(0)
+        #sys.exit(0)
     # output define service states
     if os_not_installed_service:
         print "The following services are not installed in system:"

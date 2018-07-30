@@ -39,7 +39,7 @@ _get_ovs_interfaces(){
     elif [[ ${#linenums[@]} -eq 2 ]];then
         line_str="${linenums[0]},${linenums[1]}p"
     else
-        echo "No Port [$OVS_PORT] Found!";exit
+        echo "No Port [$OVS_PORT] Found!";exit 0
     fi
     interfaces=(`sed -n "${line_str}" $TMP_FILE | grep Interface | awk '{print $2}'`)
     BOUND=$OVS_PORT
@@ -166,4 +166,5 @@ restore(){
     rm -rf /etc/sysconfig/network-scripts/ifcfg-${LINUX_BOUND}.${STORAGE_VLAN}
     rm -rf /etc/sysconfig/network-scripts/ifcfg-${LINUX_BOUND}.${STORAGEPUB_VLAN}
 }
+
 run

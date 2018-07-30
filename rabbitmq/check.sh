@@ -18,6 +18,9 @@ check(){
 
     Note "Rabbitmq Cluster_status"
     rabbitmqctl cluster_status
+    rabbitmqctl list_users
+    rabbitmqctl list_policies
+    rabbitmqctl list_permissions 
 }
 ## --- Main ---
 check

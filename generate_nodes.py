@@ -37,7 +37,7 @@ def _collect_nodes_infos():
         if 'osd' in name:
             roles.append('storage')
         if 'x-ceph' in name:
-            roles.append('xsky')
+            roles.append('xceph')
         if not roles:
             roles.append('other')
         for role in roles:
