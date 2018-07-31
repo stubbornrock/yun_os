@@ -246,7 +246,7 @@ rabbitmq2(){
 function _update_service_notification_transport(){
     Note "Update openstack service use notification_transport"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_transport.sh add"
     done
@@ -255,7 +255,7 @@ function _update_service_notification_transport(){
 function _update_service_rpc_transport(){
     Note "Update openstack service use rabbit_hosts"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_rpc_transport.sh add"
     done
@@ -264,7 +264,7 @@ function _update_service_rpc_transport(){
 function _restore_service_notification_transport(){
     Note "Update openstack service use notification_transport"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_transport.sh delete"
     done
@@ -273,7 +273,7 @@ function _restore_service_notification_transport(){
 function _restore_service_rpc_transport(){
     Note "Update openstack service use rabbit_hosts"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute' |awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_rpc_transport.sh delete"
     done
