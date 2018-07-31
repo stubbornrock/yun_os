@@ -369,6 +369,17 @@ linux_bond(){
 }
 
 ############################
+#  update_live_migrate_addr
+############################
+function _update_live_migrate_addr(){
+    Note "Change compute node use storagepub to live migrate"
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
+        echo_info "---------- [$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/compute/update_live_migrate_addr.sh add"
+    done
+}
+
+############################
 # menu
 ############################
 function validate(){
@@ -392,6 +403,7 @@ function usage(){
     echo_warn "./run.sh linux_bond                        :Change ovs bond to linux bond"
     echo_warn "./run.sh rabbit_hosts [--update|--restore] :Add notification_transport and change to rabbitmq host list"
     echo_warn "./run.sh restart_services                  :restart controller compute openstack services"
+    echo_warn "./run.sh update_live_migrate_addr          :restart controller compute openstack services"
 }
 
 # ---------- Main ----------
@@ -443,6 +455,8 @@ elif [[ $role == "rabbit_hosts" ]];then
     fi
 elif [[ $role == "restart_services" ]];then
     _restart_openstack_services
+elif [[ $role == "restart_services" ]];then
+    _update_live_migrate_addr
 elif [[ $role == "post" ]];then post
 else usage
 fi
