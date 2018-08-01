@@ -5,7 +5,6 @@ CONFIG_FILES=(
 "/etc/aodh/aodh.conf"
 "/etc/ceilometer/ceilometer.conf"
 "/etc/cinder/cinder.conf"
-"/etc/glance/glance-registry.conf"
 "/etc/glance/glance-api.conf"
 "/etc/heat/heat.conf"
 "/etc/ironic/ironic.conf"
@@ -17,11 +16,12 @@ CONFIG_FILES=(
 "/etc/trove/trove.conf"
 "/etc/trove/trove-taskmanager.conf"
 "/etc/trove/trove-conductor.conf"
+"/etc/trove/trove-guestagent.conf"
 )
-
+DATE=`date +%Y%m%d%H`
 _backup_file(){
     CFG=$1
-    CFG_BAK=${CFG}.bak
+    CFG_BAK=${CFG}.${DATE}
     if [ ! -f "$CFG_BAK" ]; then
         cp $CFG $CFG_BAK
     fi
@@ -43,18 +43,22 @@ function add_rpc_transport(){
         if [[ -f $file ]];then
             _backup_file $file
             linenum=`cat $file | grep -n rabbit_hosts | grep -v "#" | cut -d ":" -f1`
-            sed -i "${linenum}s/^/#/g" $file
-            linenum=`expr $linenum + 1`
-            sed -i "${linenum}i rabbit_hosts = $RABBITMQ_HOSTS" $file 
+            if [ "$linenum" -gt 0 ] 2>/dev/null ;then  
+                sed -i "${linenum}s/^/#/g" $file
+                linenum=`expr $linenum + 1`
+                sed -i "${linenum}i rabbit_hosts = $RABBITMQ_HOSTS" $file 
+            else
+                echo "File $file rabbit_hosts option not Found!"
+            fi
         else
-            echo "Host has no $file"
+            echo "Host has no $file!"
         fi
     done
 }
 
 function delete_rpc_transport(){
     for file in ${CONFIG_FILES[@]};do
-        cp ${file}.bak ${file}
+        cp ${file}.${DATE} ${file}
     done
 }
 

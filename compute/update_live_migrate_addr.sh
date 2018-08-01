@@ -3,10 +3,11 @@ INVENTORY="/tmp/yun_os/nodes.txt"
 HOSTNAME=`hostname`
 STORAGEPUB=""
 NOVA_CFG="/etc/nova/nova.conf"
+DATE=`date +%Y%m%d%H`
 
 _backup_file(){
     CFG=$1
-    CFG_BAK=${CFG}.bak
+    CFG_BAK=${CFG}.${DATE}
     if [ ! -f "$CFG_BAK" ]; then
         cp $CFG $CFG_BAK
     fi
@@ -35,7 +36,7 @@ function update_live_migrate_addr(){
 }
 
 function restore_live_migrate_addr(){
-    cp ${NOVA_CFG}.bak ${NOVA_CFG}
+    cp ${NOVA_CFG}.${DATE} ${NOVA_CFG}
 }
 
 action=$1

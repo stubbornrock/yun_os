@@ -16,9 +16,10 @@ CONFIG_FILES=(
 "/etc/sahara/sahara.conf"
 )
 
+DATE=`date +%Y%m%d%H`
 _backup_file(){
     CFG=$1
-    CFG_BAK=${CFG}.bak
+    CFG_BAK=${CFG}.${DATE}
     if [ ! -f "$CFG_BAK" ]; then
         cp $CFG $CFG_BAK
     fi
