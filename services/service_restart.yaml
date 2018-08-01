@@ -14,7 +14,7 @@ systemd:
       - openstack-nova-novncproxy
     neutron:
       #- neutron-l3-agent
-      - neutron-lbaasv2-agent
+      #- neutron-lbaasv2-agent
       - neutron-server
       - neutron-dhcp-agent
       - neutron-metadata-agent
