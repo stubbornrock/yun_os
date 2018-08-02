@@ -18,6 +18,22 @@ CONFIG_FILES=(
 "/etc/trove/trove-conductor.conf"
 "/etc/trove/trove-guestagent.conf"
 )
+############################
+# common functions
+############################
+echo_info(){
+    echo -e "\033[32m$1\033[0m"
+}
+echo_error(){
+    echo -e "\033[31m$1\033[0m"
+}
+echo_warn(){
+    echo -e "\033[33m$1\033[0m"
+}
+
+############################
+# backup functions
+############################
 DATE=`date +%Y%m%d%H`
 _backup_file(){
     CFG=$1
@@ -39,7 +55,7 @@ generate_transport_url(){
 function add_rpc_transport(){
     generate_transport_url
     for file in ${CONFIG_FILES[@]};do
-        echo "File $file [add] rpc rabbit_hosts=$RABBITMQ_HOSTS"
+        echo_info "File $file [add] rpc rabbit_hosts=$RABBITMQ_HOSTS"
         if [[ -f $file ]];then
             _backup_file $file
             linenum=`cat $file | grep -n rabbit_hosts | grep -v "#" | cut -d ":" -f1`
@@ -48,10 +64,8 @@ function add_rpc_transport(){
                 linenum=`expr $linenum + 1`
                 sed -i "${linenum}i rabbit_hosts = $RABBITMQ_HOSTS" $file 
             else
-                echo "File $file rabbit_hosts option not Found!"
+                echo_error "File $file rabbit_hosts option not Found!"
             fi
-        else
-            echo "Host has no $file!"
         fi
     done
 }

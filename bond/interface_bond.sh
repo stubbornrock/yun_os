@@ -1,8 +1,10 @@
 #!/bin/bash
-OVS_PORT=ovs-bond1
-LINUX_BOUND=bond1
-STORAGE_VLAN=114
-STORAGEPUB_VLAN=113
+BOUND_NAME=${1:-bond1}
+STORAGE_VLAN=${2:-114}
+STORAGEPUB_VLAN=${3:-114}
+
+OVS_PORT=ovs-${BOUND_NAME}
+LINUX_BOUND=${BOUND_NAME}
 
 # ------------ utils -------------
 TMP_FILE=/tmp/tmp.txt

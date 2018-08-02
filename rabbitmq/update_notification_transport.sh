@@ -15,7 +15,22 @@ CONFIG_FILES=(
 "/etc/nova/nova.conf"
 "/etc/sahara/sahara.conf"
 )
+############################
+# common functions
+############################
+echo_info(){
+    echo -e "\033[32m$1\033[0m"
+}
+echo_error(){
+    echo -e "\033[31m$1\033[0m"
+}
+echo_warn(){
+    echo -e "\033[33m$1\033[0m"
+}
 
+############################
+# backup functions
+############################
 DATE=`date +%Y%m%d%H`
 _backup_file(){
     CFG=$1
@@ -45,12 +60,12 @@ function add_notification_transport(){
             _backup_file $file
             egrep -i ^notification_transport_url $file
             if [[ $? -eq 1 ]];then
-                echo "File $file [add] notification_transport_url=$TRANSPORT_URL"
+                echo_info "File $file [add] notification_transport_url=$TRANSPORT_URL"
                 linenum=`egrep -n "^\[DEFAULT\]" $file | cut -d':' -f1`
                 linenum=`expr $linenum + 1`
                 sed -i "${linenum}i notification_transport_url=$TRANSPORT_URL" $file
             else
-                echo "File $file [update] notification_transport_url=$TRANSPORT_URL"
+                echo_warn "File $file [update] notification_transport_url=$TRANSPORT_URL"
                 sed -i "s#^notification_transport_url.*#notification_transport_url=$TRANSPORT_URL#g" $file
             fi
         fi

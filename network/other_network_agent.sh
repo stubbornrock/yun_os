@@ -17,8 +17,10 @@ _rpc_response_timeout(){
     if [[ $? -ne 0 ]];then
         echo "File $NEUTRON_CFG rpc_response_timeout neend to add"
         linenum=`cat $NEUTRON_CFG | grep -n "#rpc_response_timeout" | cut -d ":" -f1`
-        linenum=`expr $linenum + 1`
-        sed -i "${linenum}i rpc_response_timeout=600" $NEUTRON_CFG
+        if [ "$linenum" -gt 0 ] 2>/dev/null ;then
+            linenum=`expr $linenum + 1`
+            sed -i "${linenum}i rpc_response_timeout=600" $NEUTRON_CFG
+        fi
     else
         echo "File $NEUTRON_CFG rpc_response_timeout need to update"
         sed -i "s/^rpc_response_timeout.*/rpc_response_timeout=600/" $NEUTRON_CFG
@@ -30,8 +32,10 @@ _force_metadata(){
     if [[ $? -ne 0 ]];then
         echo "File $DHCP_CFG force_metadata neend to add"
         linenum=`cat $DHCP_CFG | grep -n "^#force_metadata" | cut -d ":" -f1`
-        linenum=`expr $linenum + 1`
-        sed -i "${linenum}i force_metadata=True" $DHCP_CFG
+        if [ "$linenum" -gt 0 ] 2>/dev/null ;then
+            linenum=`expr $linenum + 1`
+            sed -i "${linenum}i force_metadata=True" $DHCP_CFG
+        fi
     else
         echo "File $DHCP_CFG force_metadata need to update"
         sed -i "s/^force_metadata.*/force_metadata=True/" $DHCP_CFG

@@ -223,7 +223,7 @@ function _restart_openstack_services(){
     echo_info "---------- [controller: $pxe_ip] ----------" 
     ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=controller --type=pacemaker"
 
-    for pxe_ip in `cat nodes.txt | egrep 'compute' | awk '{print $2}'`;do
+    for pxe_ip in `cat nodes.txt | egrep 'compute|xceph' | awk '{print $2}'`;do
         echo_info "---------- [compute: $pxe_ip] ----------" 
         ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=compute --type=systemd"
     done
@@ -359,9 +359,15 @@ function check(){
 ############################
 function _storage_bond_to_linux(){
     Note "Change br-storage,br-storagepub from ovs to linux bond"
+    read -p "Please input bond name:" bn
+    BOND_NAME=$bn
+    read -p "Please input storage vlan:" sv
+    STORAGE_VLAN=$sv
+    read -p "Please input storagepub vlan:" spv
+    STORAGEPUB_VLAN=$spv
     for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
         echo_info "---------- [$pxe_ip] ----------"
-        ssh $pxe_ip "sh $DEST_DIR/bond/interface_bond.sh"
+        ssh $pxe_ip "sh $DEST_DIR/bond/interface_bond.sh $BOND_NAME $STORAGE_VLAN $STORAGEPUB_VLAN"
     done
 }
 linux_bond(){
@@ -376,6 +382,35 @@ function _update_live_migrate_addr(){
     for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/compute/update_live_migrate_addr.sh add"
+    done
+}
+function _check_live_migrate_addr(){
+    Note "Check compute node use storagepub to live migrate"
+    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
+        echo_info "---------- [$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/compute/update_live_migrate_addr.sh check"
+    done
+}
+
+############################
+# update workers
+############################
+update_workers(){
+    Note "Update some controller process workers"
+    for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
+        echo_info "---------- [$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/workers/update_workers.sh"
+    done
+}
+
+############################
+# force metadata
+############################
+dhcp_force_metadata(){
+    Note "Update neutron_dhcp_metadata"
+    for pxe_ip in `cat nodes.txt | egrep 'controller|neutron-l3' | awk '{print $2}'`;do
+        echo_info "---------- [$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/network/other_network_agent.sh"
     done
 }
 
@@ -393,17 +428,19 @@ function validate(){
 }
 function usage(){
     echo_warn "Usage:"
-    echo_warn "./run.sh prepare                           :sync time and prepare scripts"
-    echo_warn "./run.sh controller   [--update|--check]   :clear pacemaker resources,update haproxy files"
-    echo_warn "./run.sh mariadb      [--update|--check]   :setup new mariadb cluster on database nodes"
-    echo_warn "./run.sh rabbitmq1    [--update|--check]   :reduce rabbitmqcluster to 3 node on rabbitmq1 cluster"
-    echo_warn "./run.sh rabbitmq2    [--update|--check]   :setup new rabbitmq custer,set permissions,policies"
-    echo_warn "./run.sh ceph         [--update|--check]   :disable mariadb/rabbitmq ceph services and update all node ceph.conf"
-    echo_warn "./run.sh post                              :before test, disable,clean some services"
-    echo_warn "./run.sh linux_bond                        :Change ovs bond to linux bond"
-    echo_warn "./run.sh rabbit_hosts [--update|--restore] :Add notification_transport and change to rabbitmq host list"
-    echo_warn "./run.sh restart_services                  :restart controller compute openstack services"
-    echo_warn "./run.sh update_live_migrate_addr          :restart controller compute openstack services"
+    echo_warn "sh run.sh prepare                             :sync time and prepare scripts"
+    echo_warn "sh run.sh controller   [--update|--check]     :clear pacemaker resources,update haproxy files"
+    echo_warn "sh run.sh mariadb      [--update|--check]     :setup new mariadb cluster on database nodes"
+    echo_warn "sh run.sh rabbitmq1    [--update|--check]     :reduce rabbitmqcluster to 3 node on rabbitmq1 cluster"
+    echo_warn "sh run.sh rabbitmq2    [--update|--check]     :setup new rabbitmq custer,set permissions,policies"
+    echo_warn "sh run.sh ceph         [--update|--check]     :disable mariadb/rabbitmq ceph services and update all node ceph.conf"
+    echo_warn "sh run.sh post                                :before test, disable,clean some services"
+    echo_warn "sh run.sh linux_bond                          :Change ovs bond to linux bond"
+    echo_warn "sh run.sh rabbit_hosts [--update|--restore]   :Add notification_transport and change to rabbitmq host list"
+    echo_warn "sh run.sh live_migrate_addr [--update|--check]:change nova live migrate addr use storagepub"
+    echo_warn "sh run.sh update_workers                      :update controller some process workers"
+    echo_warn "sh run.sh dhcp_force_metadata                 :neutron dhcp force metadata"
+    echo_warn "sh run.sh restart_services                    :restart controller compute openstack services"
 }
 
 # ---------- Main ----------
@@ -453,10 +490,18 @@ elif [[ $role == "rabbit_hosts" ]];then
     elif [[ $action == "--restore" ]];then
         rabbit_hosts_delete
     fi
+elif [[ $role == "update_workers" ]];then
+    update_workers
+elif [[ $role == "dhcp_force_metadata" ]];then
+    dhcp_force_metadata
 elif [[ $role == "restart_services" ]];then
     _restart_openstack_services
-elif [[ $role == "restart_services" ]];then
-    _update_live_migrate_addr
+elif [[ $role == "live_migrate_addr" ]];then
+    if [[ $action == "--update" ]];then
+        _update_live_migrate_addr
+    elif [[ $action == "--check" ]];then
+        _check_live_migrate_addr
+    fi
 elif [[ $role == "post" ]];then post
 else usage
 fi

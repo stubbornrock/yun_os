@@ -47,6 +47,8 @@ systemd:
       - openstack-ironic-api
     chakra:
       - openstack-chakra-api
+    magnum:
+      - openstack-magnum-api
   compute:
     nova:
       - openstack-nova-compute
