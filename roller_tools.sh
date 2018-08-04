@@ -66,7 +66,7 @@ _update_ip_range(){
 validate_action(){
     local action=$1
     local result=false
-    actions=("delete-node" "start-id" "ip-range" "ready-node")
+    actions=("delete-node" "start-id" "ip-range" "ready-node" "truncate-node-ips")
     for a in ${actions[@]};do
         if [[ $a == $action ]];then result=true;break;fi
     done
@@ -90,6 +90,7 @@ usage(){
     echo_info "Usage:"
     echo_info "  sh roller_tool.sh delete-node nodeid"
     echo_info "  sh roller_tool.sh ready-node"
+    echo_info "  sh roller_tool.sh truncate-node-ips"
     echo_info "  sh roller_tool.sh start-id nodeid"
     echo_info "  sh roller_tool.sh ip-range network ipaddr"
 }
@@ -100,6 +101,8 @@ if [[ $action == "delete-node" ]];then
     _delete_node $2
 if [[ $action == "ready-node" ]];then
     _node_ready
+elif [[ $action == "truncate-node-ips" ]];then
+    _truncate_ip_addrs
 elif [[ $action == "start-id" ]];then
     _update_start_id $2
 elif [[ $action == "ip-range" ]];then
