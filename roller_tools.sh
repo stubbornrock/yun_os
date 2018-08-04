@@ -35,6 +35,17 @@ _update_start_id(){
     psql -U nailgun nailgun -h localhost -c "\d nodes_id_seq"
 }
 
+_truncate_ip_addrs(){
+   export PGPASSWORD=`cat /etc/roller/astute.yaml |grep nailgun_password |awk '{print $2}'`
+   #echo $PGPASSWORD
+   echo_warn "Truncate table ip_addrs ..."
+   psql -U nailgun nailgun -h localhost -c "TRUNCATE ip_addrs;"
+   psql -U nailgun nailgun -h localhost -c "SELECT * FROM ip_addrs;"
+   ##
+   #roller deployment --env 1 --default
+}
+
+
 _update_ip_range(){
    network=$1
    iprange=$2
