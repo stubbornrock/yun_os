@@ -99,7 +99,7 @@ action=$1
 validate_action $action
 if [[ $action == "delete-node" ]];then
     _delete_node $2
-if [[ $action == "ready-node" ]];then
+elif [[ $action == "ready-node" ]];then
     _node_ready
 elif [[ $action == "truncate-node-ips" ]];then
     _truncate_ip_addrs
