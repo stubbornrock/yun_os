@@ -14,7 +14,7 @@ function delete_nova_service(){
     done
     host_names=${host_names%?}
     source /root/openrc
-    for service in `nova service-list | grep $host_names | cut -d'|' -f2`;do
+    for service in `nova service-list | egrep $host_names | cut -d'|' -f2`;do
         echo "nova service-delete $service ...."
         nova service-delete $service
     done
