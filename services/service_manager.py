@@ -114,6 +114,7 @@ def disable_openstack_services(arguments):
         user_services.extend(service_list)
     for service in user_services:
         cmd = "systemctl disable %s;systemctl stop %s" %(service,service)
+        print cmd
         os.popen(cmd)
 
 @register('check')
