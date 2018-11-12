@@ -34,7 +34,7 @@ def _collect_nodes_infos():
             roles.append('mongo')
         if 'neutron-l3' in name or 'neutron' in name or 'neut' in name:
             roles.append('neutron-l3')
-        if 'osd' in name:
+        if 'osd' in name or 'ceph' in name:
             roles.append('storage')
         if 'x-ceph' in name:
             roles.append('xceph')
