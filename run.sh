@@ -22,6 +22,16 @@ Note(){
 ############################
 # prepare
 ############################
+function _check_nodes(){
+    printf "%-15s %2s\n" "NODE" "NUM"
+    for role in `cat nodes.txt | awk '{print $5}' | uniq`;do
+        num=`cat nodes.txt | grep $role | wc -l`
+        printf "%-15s %2s\n" $role $num
+    done
+    echo_warn "Are Node's roles and numbers correct in nodes.txt?"
+    read -p "Y/N?:" is_ok
+    if [[ $is_ok != "Y" ]];then exit 0;fi
+}
 function _copy_files(){
     for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute|storage|xceph'| awk '{print $2}'`;do
         echo_info "***** Copy update scripts to :[$pxe_ip] *****"
@@ -427,6 +437,8 @@ function validate(){
     if ! $result;then usage;exit 1;fi
 }
 function usage(){
+    echo_error "NOTE"
+    echo_error "You must execute the script by order!!"
     echo_warn "Usage:"
     echo_warn "sh run.sh prepare                             :sync time and prepare scripts"
     echo_warn "sh run.sh controller   [--update|--check]     :clear pacemaker resources,update haproxy files"
@@ -451,6 +463,8 @@ action=$2
 if [[ $# -eq 2 ]];then
     validate $action
 fi
+_check_nodes 
+exit 1
 if   [[ $role == "prepare" ]];then prepare
 elif [[ $role == "controller" ]];then
     if [[ $action == "--update" ]];then
