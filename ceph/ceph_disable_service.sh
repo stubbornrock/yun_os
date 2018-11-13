@@ -21,10 +21,10 @@ disable_services(){
 
 check_services(){
     for s in ${CEPH_SERVICES[@]};do
-        systemctl status $s
+        systemctl status $s | egrep 'Active:|.service'
         short_hostname=`hostname -s`
         mon_service="ceph-mon@${short_hostname}.service"
-        systemctl status $mon_service 
+        systemctl status $mon_service | egrep 'Active:|.service'
     done
 }
 

@@ -10,5 +10,10 @@ Note(){
 
 check(){
     Note "/etc/ceph/ceph.conf"
-    egrep "^mon_initial_members|^mon_host" $CEPH_CONF    
+    if [[ -f $CEPH_CONF ]];then
+        egrep "^mon_initial_members|^mon_host" $CEPH_CONF    
+    else
+        echo "[INFO] No $CEPH_CONF File On this Host!"
+    fi
 }
+check

@@ -45,15 +45,19 @@ run(){
         done
         is_exist=`ps -ef | grep -c wsrep-new-cluster`
         if [[ $is_exist -lt 2 ]];then
+            pkill -9 mysqld
             /usr/libexec/mysqld --basedir=/usr --datadir=/var/lib/mysql --plugin-dir=/usr/lib64/mysql/plugin --user=mysql --wsrep-new-cluster &
             sleep 10
             ps -ef | grep /usr/libexec/mysqld
         else
+            systemctl stop mariadb
             pkill -9 mysqld
-            systemctl restart mariadb
+            systemctl start mariadb
         fi
     else
-        systemctl restart mariadb
+        systemctl stop mariadb
+        pkill -9 mysqld
+        systemctl start mariadb
     fi
 }
 

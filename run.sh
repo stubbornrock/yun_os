@@ -24,9 +24,9 @@ Note(){
 ############################
 function _check_nodes(){
     printf "%-15s %2s\n" "NODE" "NUM"
-    for role in `cat nodes.txt | awk '{print $5}' | uniq`;do
-        num=`cat nodes.txt | grep $role | wc -l`
-        printf "%-15s %2s\n" $role $num
+    for node_role in `cat nodes.txt | awk '{print $5}' | uniq`;do
+        node_num=`cat nodes.txt | grep $node_role | wc -l`
+        printf "%-15s %2s\n" $node_role $node_num
     done
     echo_warn "Are Node's roles and numbers correct in nodes.txt?"
     read -p "Y/N?:" is_ok
@@ -416,8 +416,8 @@ update_workers(){
 ############################
 # force metadata
 ############################
-dhcp_force_metadata(){
-    Note "Update neutron_dhcp_metadata"
+dhcp(){
+    Note "Update neutron dhcp_metadata/dhcp_per_network/response_timeout"
     for pxe_ip in `cat nodes.txt | egrep 'controller|neutron-l3' | awk '{print $2}'`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/network/other_network_agent.sh"
@@ -451,7 +451,7 @@ function usage(){
     echo_warn "sh run.sh rabbit_hosts [--update|--restore]   :Add notification_transport and change to rabbitmq host list"
     echo_warn "sh run.sh live_migrate_addr [--update|--check]:change nova live migrate addr use storagepub"
     echo_warn "sh run.sh update_workers                      :update controller some process workers"
-    echo_warn "sh run.sh dhcp_force_metadata                 :neutron dhcp force metadata"
+    echo_warn "sh run.sh dhcp                                :neutron dhcp force_metadata/dhcp_per_network/response_timeout"
     echo_warn "sh run.sh restart_services                    :restart controller compute openstack services"
 }
 
@@ -464,7 +464,6 @@ if [[ $# -eq 2 ]];then
     validate $action
 fi
 _check_nodes 
-exit 1
 if   [[ $role == "prepare" ]];then prepare
 elif [[ $role == "controller" ]];then
     if [[ $action == "--update" ]];then
@@ -506,8 +505,8 @@ elif [[ $role == "rabbit_hosts" ]];then
     fi
 elif [[ $role == "update_workers" ]];then
     update_workers
-elif [[ $role == "dhcp_force_metadata" ]];then
-    dhcp_force_metadata
+elif [[ $role == "dhcp" ]];then
+    dhcp
 elif [[ $role == "restart_services" ]];then
     _restart_openstack_services
 elif [[ $role == "live_migrate_addr" ]];then
