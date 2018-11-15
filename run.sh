@@ -355,11 +355,17 @@ ceph(){
 # post
 ############################
 function post(){
-    _controller_delete_agent
-    _close_neutron_services
-    _close_controller_services
-    _controller_enable_agent
-    #_restart_openstack_services
+    echo_warn "Please ensure nova/neutron command is ok?"
+    read -p "Y/N?:" is_service_ok
+    if [[ $is_service_ok == "Y" ]];then
+        _controller_delete_agent
+        _close_neutron_services
+        _close_controller_services
+        _controller_enable_agent
+        #_restart_openstack_services
+    else
+        echo_warn "Please check cluster services!"
+    fi
 }
 
 ############################
