@@ -157,7 +157,12 @@ run(){
     _bonding_modprobe
     _generate_network_scripts
     _clear_ovs_bridge
-    systemctl restart network
+    #systemctl restart network
+    ifup $ETH1
+    ifup $ETH2
+    ifup $LINUX_BOUND
+    ifup ${LINUX_BOUND}.${STORAGEPUB_VLAN}
+    ifup ${LINUX_BOUND}.${STORAGE_VLAN}
 }
 restore(){
     _restore_interface_cfg /etc/sysconfig/network-scripts/ifcfg-$LINUX_BOUND
