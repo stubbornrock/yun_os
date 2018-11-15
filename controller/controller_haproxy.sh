@@ -10,6 +10,16 @@ HAPROXY_MYSQL_CFG=('110-mysqld.cfg' '111-mysqld-neutron.cfg' '112-mysqld-nova.cf
 HAPROXY_RABBITMQ1_CFG='100-rabbitmq.cfg'
 HAPROXY_RABBITMQ2_CFG='101-rabbitmq2.cfg'
 
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
+
 backup_haproxy_confd(){
     if [ ! -d "$HAPROXY_BAK" ]; then
         mkdir -p $HAPROXY_BAK
@@ -22,7 +32,7 @@ update_haproxy_cfg(){
 }
 update_haproxy_confd_files(){
     host_ips=""
-    for ip in `cat $INVENTORY | egrep 'mariadb|rabbitmq' | awk '{print $1}'`;do
+    for ip in `nodes 'mariadb|rabbitmq' 1`;do
         host_ips="${host_ips}${ip}|"
     done
     host_ips=${host_ips%?}
@@ -39,7 +49,7 @@ update_haproxy_mysql_rabbitmq_files(){
     for file in ${HAPROXY_MYSQL_CFG[@]};do
         cp $HAPROXY_BAK/$file $HAPROXY_DIR/
         other_mysql_ips=""
-        for ip in `cat $INVENTORY | egrep 'rabbitmq|controller' | awk '{print $1}'`;do
+        for ip in `nodes 'rabbitmq|controller' 1`;do
             other_mysql_ips="${other_mysql_ips}${ip}|"
         done
         other_mysql_ips=${other_mysql_ips%?}
@@ -49,7 +59,7 @@ update_haproxy_mysql_rabbitmq_files(){
             line_content=`sed -n "${line_number}p" $file_path`
             [[ $line_content =~ "#" ]] || sed -i "${line_number}s/^/#/g" $file_path
         done
-        mariadb_active_ip=`cat $INVENTORY | egrep 'mariadb' | awk '{print $1}'|head -1`
+        mariadb_active_ip=`nodes mariadb 1|head -1`
         line_number=`egrep -nri "$mariadb_active_ip" $HAPROXY_DIR/$file | cut -d':' -f1`
         sed -i "${line_number}s/backup//g" $HAPROXY_DIR/$file
 
@@ -57,7 +67,7 @@ update_haproxy_mysql_rabbitmq_files(){
     # rabbitmq1
     cp $HAPROXY_BAK/$HAPROXY_RABBITMQ1_CFG $HAPROXY_DIR/
     other_rabbitmq1_ips=""
-    for ip in `cat $INVENTORY | egrep 'mariadb|controller|rabbitmq2' | awk '{print $1}'`;do
+    for ip in `nodes 'mariadb|controller|rabbitmq2' 1`;do
         other_rabbitmq1_ips="${other_rabbitmq1_ips}${ip}|"
     done
     other_rabbitmq1_ips=${other_rabbitmq1_ips%?}
@@ -71,7 +81,7 @@ update_haproxy_mysql_rabbitmq_files(){
     # rabbitmq2
     cp $HAPROXY_BAK/$HAPROXY_RABBITMQ1_CFG $HAPROXY_DIR/$HAPROXY_RABBITMQ2_CFG
     other_rabbitmq2_ips=""
-    for ip in `cat $INVENTORY | egrep 'mariadb|controller|rabbitmq1' | awk '{print $1}'`;do
+    for ip in `nodes 'mariadb|controller|rabbitmq1' 1`;do
         other_rabbitmq2_ips="${other_rabbitmq2_ips}${ip}|"
     done
     other_rabbitmq2_ips=${other_rabbitmq2_ips%?}

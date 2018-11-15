@@ -30,7 +30,15 @@ echo_error(){
 echo_warn(){
     echo -e "\033[33m$1\033[0m"
 }
-
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 ############################
 # backup functions
 ############################
@@ -46,7 +54,7 @@ _backup_file(){
 RABBITMQ_HOSTS=""
 generate_transport_url(){
     RABBITMQ_PORT=5672
-    for ip in `cat ${INVENTORY} | egrep 'rabbitmq1' | awk '{print $1}'`;do
+    for ip in `nodes rabbitmq1 1`;do
         RABBITMQ_HOSTS="${RABBITMQ_HOSTS}${ip}:${RABBITMQ_PORT},"
     done
     RABBITMQ_HOSTS=${RABBITMQ_HOSTS%?}    

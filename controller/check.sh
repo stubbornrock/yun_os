@@ -8,11 +8,20 @@ echo_warn(){
 Note(){
     echo_warn "Check $1 ...."
 }
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 
 check(){
     # mariadb_rabbitmq host ipaddress
     host_ips=""
-    for ip in `cat $INVENTORY | egrep 'mariadb|rabbitmq' | awk '{print $1}'`;do
+    for ip in `nodes 'mariadb|rabbitmq' 1`;do
         host_ips="${host_ips}${ip}|"
     done
     host_ips=${host_ips%?}

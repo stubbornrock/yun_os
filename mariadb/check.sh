@@ -14,6 +14,15 @@ echo_warn(){
 Note(){
     echo_warn "Check $1 ...."
 }
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 
 check(){
     Note "Openstack Services"

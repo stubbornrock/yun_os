@@ -5,11 +5,20 @@
 ##############################
 
 INVENTORY="/tmp/yun_os/nodes.txt"
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 
 function delete_nova_service(){
     echo "Delete nova services on mariadb|rabbitmq ..."
     host_names=""
-    for name in `cat $INVENTORY | egrep 'mariadb|rabbitmq' | awk '{print $4}'`;do
+    for name in `nodes 'mariadb|rabbitmq' 4`;do
         host_names="${host_names}${name}|"
     done
     host_names=${host_names%?}
@@ -23,7 +32,7 @@ function delete_nova_service(){
 function delete_neutron_agent(){
     echo "Delete neutron agents on mariadb|rabbitmq ..."
     host_names=""
-    for name in `cat $INVENTORY | egrep 'mariadb|rabbitmq' | awk '{print $4}'`;do
+    for name in `nodes 'mariadb|rabbitmq' 4`;do
         host_names="${host_names}${name}|"
     done
     host_names=${host_names%?}
@@ -45,7 +54,7 @@ function delete_neutron_router(){
 function disable_neutron_l3agent(){
     echo "Disable neutron l3 agents on controllers ..."
     host_names=""
-    for name in `cat $INVENTORY | egrep 'controller' | awk '{print $4}'`;do
+    for name in `nodes controller 4`;do
         host_names="${host_names}${name}|"
     done
     host_names=${host_names%?}

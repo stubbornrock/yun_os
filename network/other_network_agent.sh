@@ -43,17 +43,17 @@ _force_metadata(){
 }
 _dhcp_agents_per_network(){
     _backup_file $NEUTRON_CFG
-    egrep -n "^dhcp_agents_per_network" $DHCP_CFG
+    egrep -n "^dhcp_agents_per_network" $NEUTRON_CFG
     if [[ $? -ne 0 ]];then
-        echo "File $DHCP_CFG dhcp_agents_per_network need to add"
-        linenum=`cat $DHCP_CFG | grep -n "^#dhcp_agents_per_network" | cut -d ":" -f1`
+        echo "File $NEUTRON_CFG dhcp_agents_per_network need to add"
+        linenum=`cat $NEUTRON_CFG | grep -n "^#dhcp_agents_per_network" | cut -d ":" -f1`
         if [ "$linenum" -gt 0 ] 2>/dev/null ;then
             linenum=`expr $linenum + 1`
-            sed -i "${linenum}i dhcp_agents_per_network=3" $DHCP_CFG
+            sed -i "${linenum}i dhcp_agents_per_network=3" $NEUTRON_CFG
         fi
     else
-        echo "File $DHCP_CFG dhcp_agents_per_network need to update"
-        sed -i "s/^dhcp_agents_per_network.*/dhcp_agents_per_network=3/" $DHCP_CFG
+        echo "File $NEUTRON_CFG dhcp_agents_per_network need to update"
+        sed -i "s/^dhcp_agents_per_network.*/dhcp_agents_per_network=3/" $NEUTRON_CFG
     fi
 }
 

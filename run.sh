@@ -18,13 +18,21 @@ echo_warn(){
 Note(){
     echo_warn "############## $1 ############"
 }
-
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat nodes.txt | awk "{print \$${field}}" | sort | uniq
+    else
+        cat nodes.txt | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 ############################
 # prepare
 ############################
 function _check_nodes(){
     printf "%-15s %2s\n" "NODE" "NUM"
-    for node_role in `cat nodes.txt | awk '{print $5}' | uniq`;do
+    for node_role in `nodes "all" 5`;do
         node_num=`cat nodes.txt | grep $node_role | wc -l`
         printf "%-15s %2s\n" $node_role $node_num
     done
@@ -33,14 +41,14 @@ function _check_nodes(){
     if [[ $is_ok != "Y" ]];then exit 0;fi
 }
 function _copy_files(){
-    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq|compute|storage|xceph'| awk '{print $2}'`;do
+    for pxe_ip in `nodes "all" 2`;do
         echo_info "***** Copy update scripts to :[$pxe_ip] *****"
         ssh $pxe_ip "mkdir -p $DEST_DIR;rm -rf $DEST_DIR/*"
         scp -r ./* $pxe_ip:$DEST_DIR/
     done
 }
 function _sync_time(){
-    for pxe_ip in `cat nodes.txt | awk '{print $2}'`;do
+    for pxe_ip in `nodes "all" 2`;do
         echo_info "***** Sync [$pxe_ip] time to Roller *****"
         d=`date | awk '{print $4}'`
         ssh $pxe_ip "date -s $d"
@@ -57,40 +65,40 @@ prepare(){
 ############################
 function _controller_clear_pacemaker_resources(){
     Note "Exec clear pacemaker resources & controller services"
-    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    pxe_ip=`nodes controller 2|head -1`
     ssh $pxe_ip "sh $DEST_DIR/controller/controller_clear_ra.sh"
 }
 function _controller_update_haproxy_files(){
     Note "Prepare haproxy files for all services"
-    for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
+    for pxe_ip in `nodes controller 2`;do
         ssh $pxe_ip "sh $DEST_DIR/controller/controller_haproxy.sh"
     done 
 }
 function _close_controller_services(){
     Note "Close neutron-l3 services on controller node"
-    for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
+    for pxe_ip in `nodes controller 2`;do
         ssh $pxe_ip "sh $DEST_DIR/services/service_controller_close.sh"
     done
 }
 function _close_neutron_services(){
     Note "Close neutron services on rabbitmq|mariadb node"
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq|mariadb' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'rabbitmq|mariadb' 2`;do
         ssh $pxe_ip "sh $DEST_DIR/services/service_neutron_close.sh"
     done
 }
 function _controller_delete_agent(){
     Note "Remove mariadb|rabbitmq openstack service/agent"
-    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    pxe_ip=`nodes controller 2|head -1`
     ssh $pxe_ip "sh $DEST_DIR/controller/controller_delete_agent.sh"
 }
 function _controller_enable_agent(){
     Note "Enable mariadb|rabbitmq database openstack service/agent"
-    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    pxe_ip=`nodes controller 2|head -1`
     ssh $pxe_ip "sh $DEST_DIR/controller/controller_enable_agent.sh"
 }
 function controller_check(){
     Note "Controller state Check!"
-    for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
+    for pxe_ip in `nodes controller 2`;do
         echo_info "---------- [controller: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/controller/check.sh"
     done
@@ -106,7 +114,7 @@ controller(){
 ############################
 function _mariadb_close_openstack_services(){
     Note "Close openstack_services on mariadb nodes"
-    for pxe_ip in `cat nodes.txt | egrep 'mariadb' | awk '{print $2}'`;do
+    for pxe_ip in `nodes mariadb 2`;do
         echo_info "---------- [mariadb: $pxe_ip] ----------"
         ssh $pxe_ip "python $DEST_DIR/services/service_manager.py disable"
         ssh $pxe_ip "sh $DEST_DIR/services/service_kill.sh"
@@ -116,7 +124,7 @@ function _mariadb_close_openstack_services(){
 function _mariadb_new_cluster(){
     Note "Setup new mariadb cluster"
     local bootstrap=false
-    for pxe_ip in `cat nodes.txt | egrep 'mariadb' | awk '{print $2}'`;do
+    for pxe_ip in `nodes mariadb 2`;do
         echo_info "---------- [mariadb: $pxe_ip] ----------"
         if ! $bootstrap;then
             ssh $pxe_ip "sh $DEST_DIR/mariadb/mariadb.sh true"
@@ -127,7 +135,7 @@ function _mariadb_new_cluster(){
     done
 }
 function mariadb_check(){
-    for pxe_ip in `cat nodes.txt | egrep 'mariadb' | awk '{print $2}'`;do
+    for pxe_ip in `nodes mariadb 2`;do
         echo_info "---------- [mariadb: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/mariadb/check.sh"
     done
@@ -144,7 +152,7 @@ function mariadb(){
 #rabbitmq1
 function _rabbitmq_close_openstack_services(){
     Note "Close openstack_services on rabbitmq nodes"
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq' | awk '{print $2}'`;do
+    for pxe_ip in `nodes rabbitmq 2`;do
         echo_info "---------- [rabbitmq: $pxe_ip] ----------"
         ssh $pxe_ip "python $DEST_DIR/services/service_manager.py disable"
         ssh $pxe_ip "sh $DEST_DIR/services/service_kill.sh"
@@ -153,14 +161,14 @@ function _rabbitmq_close_openstack_services(){
 }
 function _rabbitmq_node_out_from_cluster1(){
     Note "node stop/reset from rabbitmq cluster1"
-    for pxe_ip in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq2' | awk '{print $2}'`;do    
+    for pxe_ip in `nodes 'controller|mariadb|rabbitmq2' 2`;do    
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/rabbitmq.sh delete"
     done
 }
 function _forget_rabbitmq_nodes_from_cluster1(){
     Note "rabbitmq cluster1 forget nodes"
-    pxe_ip=`cat nodes.txt | egrep 'rabbitmq1' | awk '{print $2}'|head -1`
-    for hostname in `cat nodes.txt | egrep 'controller|mariadb|rabbitmq2' | awk '{print $4}'`;do
+    pxe_ip=`nodes rabbitmq1 2|head -1`
+    for hostname in `nodes 'controller|mariadb|rabbitmq2' 4`;do
         hostname_list=(${hostname//./ })
         short_hostname=${hostname_list[0]}
         rabbitmq_host="rabbit@$short_hostname"
@@ -170,7 +178,7 @@ function _forget_rabbitmq_nodes_from_cluster1(){
 function _update_rabbitmq_cluster1(){
     Note "Update new rabbitmq cluster1 configs"
     rabbitmq1_cluster_nodes=""
-    for hostname in `cat nodes.txt | egrep 'rabbitmq1' | awk '{print $4}'`;do
+    for hostname in `nodes rabbitmq1 4`;do
         hostname_list=(${hostname//./ })
         short_hostname=${hostname_list[0]}
         rabbitmq_host="'rabbit@$short_hostname'"
@@ -178,14 +186,14 @@ function _update_rabbitmq_cluster1(){
     done
     rabbitmq1_cluster_nodes=${rabbitmq1_cluster_nodes%?}
     ##
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq1' | awk '{print $2}'`;do
+    for pxe_ip in `nodes rabbitmq1 2`;do
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/rabbitmq.sh update \"$rabbitmq1_cluster_nodes\""
     done
 }
 
 function rabbitmq1_check(){
     Note "Check rabbitmq1 cluster status"
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq1' | awk '{print $2}'`;do
+    for pxe_ip in `nodes rabbitmq1 2`;do
         echo_info "---------- [rabbitmq1: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/check.sh"
     done
@@ -204,7 +212,7 @@ rabbitmq1(){
 function _create_new_rabbitmq_cluster2(){
     Note "Create new rabbitmq cluster2"
     rabbitmq2_cluster_nodes=""
-    for hostname in `cat nodes.txt | egrep 'rabbitmq2' | awk '{print $4}'`;do
+    for hostname in `nodes rabbitmq2 4`;do
         hostname_list=(${hostname//./ })
         short_hostname=${hostname_list[0]}
         rabbitmq_host="'rabbit@$short_hostname'"
@@ -213,7 +221,7 @@ function _create_new_rabbitmq_cluster2(){
     rabbitmq2_cluster_nodes=${rabbitmq2_cluster_nodes%?}
     ##
     local bootstrap=false
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq2' | awk '{print $2}'`;do
+    for pxe_ip in `nodes rabbitmq2 2`;do
         echo_info "---------- [rabbitmq2: $pxe_ip] ----------" 
         if ! $bootstrap;then
             ssh $pxe_ip "sh $DEST_DIR/rabbitmq/rabbitmq.sh add \"$rabbitmq2_cluster_nodes\" true"
@@ -224,24 +232,9 @@ function _create_new_rabbitmq_cluster2(){
     done
 }
 
-function _restart_openstack_services(){
-    for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
-        echo_info "---------- [controller: $pxe_ip] ----------" 
-        ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=controller --type=systemd"
-    done
-    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
-    echo_info "---------- [controller: $pxe_ip] ----------" 
-    ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=controller --type=pacemaker"
-
-    for pxe_ip in `cat nodes.txt | egrep 'compute|xceph' | awk '{print $2}'`;do
-        echo_info "---------- [compute: $pxe_ip] ----------" 
-        ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=compute --type=systemd"
-    done
-}
-
 function rabbitmq2_check(){
     Note "Check rabbitmq2 cluster status"
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq2' | awk '{print $2}'`;do
+    for pxe_ip in `nodes rabbitmq2 2`;do
         echo_info "---------- [rabbitmq2: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/check.sh"
     done
@@ -250,13 +243,28 @@ rabbitmq2(){
     _create_new_rabbitmq_cluster2
 }
 
+function _restart_openstack_services(){
+    for pxe_ip in `nodes controller 2`;do
+        echo_info "---------- [controller: $pxe_ip] ----------" 
+        ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=controller --type=systemd"
+    done
+    pxe_ip=`nodes controller 2|head -1`
+    echo_info "---------- [controller: $pxe_ip] ----------" 
+    ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=controller --type=pacemaker"
+
+    for pxe_ip in `nodes 'compute|storage|xceph' 2`;do
+        echo_info "---------- [compute: $pxe_ip] ----------" 
+        ssh $pxe_ip "python $DEST_DIR/services/service_manager.py restart --role=compute --type=systemd"
+    done
+}
+
 ############################
 # update rabbitmq hosts
 ############################
 function _update_service_notification_transport(){
     Note "Update openstack service use notification_transport"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|compute|storage|xceph' 2`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_transport.sh add"
     done
@@ -265,7 +273,7 @@ function _update_service_notification_transport(){
 function _update_service_rpc_transport(){
     Note "Update openstack service use rabbit_hosts"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|compute|storage|xceph' 2`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_rpc_transport.sh add"
     done
@@ -274,7 +282,7 @@ function _update_service_rpc_transport(){
 function _restore_service_notification_transport(){
     Note "Update openstack service use notification_transport"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|compute|storage|xceph' 2`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_notification_transport.sh delete"
     done
@@ -283,7 +291,7 @@ function _restore_service_notification_transport(){
 function _restore_service_rpc_transport(){
     Note "Update openstack service use rabbit_hosts"
     #rabbit://guest:guest@172.17.4.55:5673/
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|xceph' |awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|compute|storage|xceph' 2`;do
         echo_info "---------- [node: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/rabbitmq/update_rpc_transport.sh delete"
     done
@@ -303,36 +311,36 @@ rabbit_hosts_delete(){
 ############################
 function _ceph_rm_mon(){
     Note "Exec remove ceph monitors"
-    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    pxe_ip=`nodes controller 2|head -1`
     ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_rm_mon.sh"
 }
 function _update_ceph_conf(){
     Note "Update /etc/ceph/ceph.conf conf files"
-    for pxe_ip in `cat nodes.txt | egrep 'controller|rabbitmq|mariadb|compute|storage' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|rabbitmq|mariadb|compute|storage|xceph' 2`;do
         echo_info "---------- [ceph: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_update_conf.sh"
     done
 }
 function _disable_ceph_services(){
     Note "Stop disable mariadb/rabbitmq[1|2] files"
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq|mariadb' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'rabbitmq|mariadb' 2`;do
         echo_info "---------- [ceph: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_disable_service.sh disable"
     done
 }
 ceph_check(){
     Note "Check ceph monitors"
-    pxe_ip=`cat nodes.txt | egrep 'controller' | awk '{print $2}'|head -1`
+    pxe_ip=`nodes controller 2|head -1`
     ssh $pxe_ip "ceph -s"
 
     Note "Check /etc/ceph/ceph.conf conf"
-    for pxe_ip in `cat nodes.txt | egrep 'controller|rabbitmq|mariadb|compute|storage' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|rabbitmq|mariadb|compute|storage|xceph' 2`;do
         echo_info "---------- [ceph: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/ceph/check.sh"
     done
     
     Note "Check disable mariadb/rabbitmq[1|2] services"
-    for pxe_ip in `cat nodes.txt | egrep 'rabbitmq|mariadb' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'rabbitmq|mariadb' 2`;do
         echo_info "---------- [ceph: $pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/ceph/ceph_disable_service.sh check"
     done
@@ -375,7 +383,7 @@ function _storage_bond_to_linux(){
     STORAGE_VLAN=$sv
     read -p "Please input storagepub vlan:" spv
     STORAGEPUB_VLAN=$spv
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|compute|storage|xceph' 2`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/bond/interface_bond.sh $BOND_NAME $STORAGE_VLAN $STORAGEPUB_VLAN"
     done
@@ -389,14 +397,14 @@ linux_bond(){
 ############################
 function _update_live_migrate_addr(){
     Note "Change compute node use storagepub to live migrate"
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|compute|storage|xceph' 2`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/compute/update_live_migrate_addr.sh add"
     done
 }
 function _check_live_migrate_addr(){
     Note "Check compute node use storagepub to live migrate"
-    for pxe_ip in `cat nodes.txt | egrep 'controller|compute|storage|xceph' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|compute|storage|xceph' 2`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/compute/update_live_migrate_addr.sh check"
     done
@@ -407,7 +415,7 @@ function _check_live_migrate_addr(){
 ############################
 update_workers(){
     Note "Update some controller process workers"
-    for pxe_ip in `cat nodes.txt | egrep 'controller' | awk '{print $2}'`;do
+    for pxe_ip in `nodes controller 2`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/workers/update_workers.sh"
     done
@@ -418,7 +426,7 @@ update_workers(){
 ############################
 dhcp(){
     Note "Update neutron dhcp_metadata/dhcp_per_network/response_timeout"
-    for pxe_ip in `cat nodes.txt | egrep 'controller|neutron-l3' | awk '{print $2}'`;do
+    for pxe_ip in `nodes 'controller|neutron-l3' 2`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/network/other_network_agent.sh"
     done

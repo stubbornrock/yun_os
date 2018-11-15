@@ -1,9 +1,18 @@
 #!/bin/bash
 set -x
 INVENTORY="/tmp/yun_os/nodes.txt"
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 clear_pacemaker_ra(){
     # delete resource
-    for name in `cat ${INVENTORY} | egrep 'mariadb|rabbitmq' | awk '{print $4}'`;do
+    for name in `nodes 'mariadb|rabbitmq' 4`;do
         echo "---------- pacemaker clear $name resources ----------"
         crm configure delete easystack-hagent-on-$name
         crm configure delete p_ironic-conductor-on-$name
@@ -20,7 +29,7 @@ clear_pacemaker_ra(){
     done
     ## mysql
     crm resource stop p_mysql
-    for name in `cat ${INVENTORY} | egrep 'controller|mariadb|rabbitmq' | awk '{print $4}'`;do
+    for name in `nodes 'controller|mariadb|rabbitmq' 4`;do
         crm configure delete clone_p_mysql-on-$name
     done
     crm configure delete clone_p_mysql

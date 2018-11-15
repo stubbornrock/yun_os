@@ -27,6 +27,15 @@ echo_error(){
 echo_warn(){
     echo -e "\033[33m$1\033[0m"
 }
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 
 ############################
 # backup functions
@@ -46,7 +55,7 @@ generate_transport_url(){
     rabbit_user='nova'
     rabbit_port=5672
     rabbit_password=`egrep ^rabbit_password /etc/nova/nova.conf | cut -d'=' -f2`
-    for ip in `cat ${INVENTORY} | egrep 'rabbitmq2' | awk '{print $1}'`;do
+    for ip in `nodes rabbitmq2 1`;do
         TRANSPORT_URL="${TRANSPORT_URL}${rabbit_user}:${rabbit_password}@${ip}:${rabbit_port},"
     done
     TRANSPORT_URL=${TRANSPORT_URL%?}

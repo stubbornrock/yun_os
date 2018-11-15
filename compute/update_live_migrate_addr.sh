@@ -32,8 +32,17 @@ _backup_file(){
 ############################
 # main functions
 ############################
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
 function get_storagepub_addr(){
-    STORAGEPUB=`cat $INVENTORY | grep $HOSTNAME | awk '{print $3}'`
+    STORAGEPUB=`nodes $HOSTNAME 3|head -1`
 }
 
 function update_live_migrate_addr(){

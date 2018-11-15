@@ -8,6 +8,16 @@ HAPROXY_DIR='/etc/haproxy/conf.d/'
 ETC_MY_CNF='/etc/my.cnf.d/galera.cnf'
 ETC_MY_CNF_BAK='/etc/my.cnf.d/galera.cnf.bak'
 
+nodes(){
+    local roles="$1"
+    local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
+    if [[ $roles == "all" ]];then
+        cat ${INVENTORY} | awk "{print \$${field}}" | sort | uniq
+    else
+        cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
+    fi
+}
+
 backup_haproxy_confd(){
     #1.prepare haproxy cfg
     if [ ! -d "$HAPROXY_BAK" ]; then
@@ -21,7 +31,7 @@ backup_haproxy_confd(){
 update_my_cnf(){
     cp $ETC_MY_CNF $ETC_MY_CNF_BAK
     cluster_nodes=""
-    for mgmt_ip in `cat $INVENTORY | egrep 'mariadb' | awk '{print $1}'`;do
+    for mgmt_ip in `nodes mariadb 1`;do
         cluster_nodes="${cluster_nodes}${mgmt_ip}:4567,"
     done
     cluster_nodes=${cluster_nodes%?}
