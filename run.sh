@@ -437,8 +437,10 @@ function validate(){
     if ! $result;then usage;exit 1;fi
 }
 function usage(){
-    echo_error "NOTE"
-    echo_error "You must execute the script by order!!"
+    echo_error "******************************************"
+    echo_error "* NOTE!                                  *"
+    echo_error "* You must execute the script by order!! *"
+    echo_error "******************************************"
     echo_warn "Usage:"
     echo_warn "sh run.sh prepare                             :sync time and prepare scripts"
     echo_warn "sh run.sh controller   [--update|--check]     :clear pacemaker resources,update haproxy files"
