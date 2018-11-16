@@ -5,6 +5,7 @@
 ##############################
 
 INVENTORY="/tmp/yun_os/nodes.txt"
+
 nodes(){
     local roles="$1"
     local field="$2" #1:management 2:pxe 3:storagepub 4:hostname 5:role
@@ -13,6 +14,17 @@ nodes(){
     else
         cat ${INVENTORY} | egrep -e "$roles" | awk "{print \$${field}}" | sort | uniq
     fi
+}
+
+function test_commands(){
+    set -e
+    echo "Test nova/neutron commands ... if error please exit and check!!"
+    source /root/openrc
+    nova service-list
+    neutron agent-list
+    neutron router-list
+    neutron agent-list
+    set +e
 }
 
 function delete_nova_service(){
@@ -76,6 +88,7 @@ function delete_dhcp_agent(){
 }
 
 crm resource restart p_haproxy
+test_commands
 delete_nova_service
 delete_neutron_agent
 delete_neutron_router

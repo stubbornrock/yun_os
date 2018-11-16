@@ -2,7 +2,6 @@
 
 INVENTORY="/tmp/yun_os/nodes.txt"
 COROSYNC_FILE='/etc/corosync/corosync.conf'
-COROSYNC_FILE='corosync.conf'
 DATE=`date +%Y%m%d%H`
 
 nodes(){
@@ -49,6 +48,7 @@ pacemaker_remove_node(){
 }
 check(){
     cat $COROSYNC_FILE | grep nodeid
+    crm status
 }
 action=$1
 pxe_ip=$2

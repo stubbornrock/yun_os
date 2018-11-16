@@ -116,8 +116,8 @@ function _pacemaker_kick_out_nodes(){
     for pxe_ip in `nodes 'mariadb|rabbitmq' 2`;do
         echo_info "---------- [$pxe_ip] ----------"
         ssh $pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh disable"
-        pxe_ip=`nodes controller 2|head -1`
-        ssh $pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh remove $pxe_ip"
+        local controller_pxe_ip=`nodes controller 2|head -1`
+        ssh $controller_pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh remove $pxe_ip"
     done
 }
 function _update_corosync_file(){
@@ -127,9 +127,17 @@ function _update_corosync_file(){
         ssh $pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh update"
     done
 }
+function _restart_corosync_service(){
+    Note "Restart corosync service ..."
+    for pxe_ip in `nodes controller 2`;do
+        echo_info "---------- [controller:$pxe_ip] ----------"
+        ssh $pxe_ip "systemctl restart corosync"
+    done
+}
 pacemaker(){
     _pacemaker_kick_out_nodes
     _update_corosync_file
+    _restart_corosync_service
 }
 pacemaker_check(){
     Note "Update controller corosync.conf"
