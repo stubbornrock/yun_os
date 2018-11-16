@@ -524,6 +524,7 @@ elif [[ $role == "pacemaker" ]];then
         pacemaker
     elif [[ $action == "--check" ]];then
         pacemaker_check
+    fi
 elif [[ $role == "mariadb" ]];then
     if [[ $action == "--update" ]];then
         mariadb
