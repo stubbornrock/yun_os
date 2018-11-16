@@ -108,6 +108,38 @@ controller(){
     _controller_update_haproxy_files
     _controller_clear_pacemaker_resources
 }
+############################
+# pacemaker service
+############################
+function _pacemaker_kick_out_nodes(){
+    Note "Pacemaker kick out rabbitmq/mariadb nodes"
+    for pxe_ip in `nodes 'mariadb|rabbitmq' 2`;do
+        echo_info "---------- [$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh disable"
+        pxe_ip=`nodes controller 2|head -1`
+        ssh $pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh remove $pxe_ip"
+    done
+}
+function _update_corosync_file(){
+    Note "Update controller corosync.conf"
+    for pxe_ip in `nodes controller 2`;do
+        echo_info "---------- [controller:$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh update"
+    done
+}
+pacemaker(){
+    _pacemaker_kick_out_nodes
+    _update_corosync_file
+}
+pacemaker_check(){
+    Note "Update controller corosync.conf"
+    for pxe_ip in `nodes controller 2`;do
+        echo_info "---------- [controller:$pxe_ip] ----------"
+        ssh $pxe_ip "sh $DEST_DIR/pacemaker/pacemaker.sh check"
+    done
+    pxe_ip=`nodes controller 2|head -1`
+    ssh $pxe_ip "crm_node --list"
+}
 
 ############################
 # mariadb service
@@ -145,7 +177,6 @@ function mariadb(){
     _mariadb_close_openstack_services
     _mariadb_new_cluster
 }
-
 ############################
 # rabbitmq1 service
 ############################
@@ -458,6 +489,7 @@ function usage(){
     echo_warn "Usage:"
     echo_warn "sh run.sh prepare                             :sync time and prepare scripts"
     echo_warn "sh run.sh controller   [--update|--check]     :clear pacemaker resources,update haproxy files"
+    echo_warn "sh run.sh pacemaker    [--update|--check]     :pacemaker cluster kick out rabbitmq/mariadb ndoes"
     echo_warn "sh run.sh mariadb      [--update|--check]     :setup new mariadb cluster on database nodes"
     echo_warn "sh run.sh rabbitmq1    [--update|--check]     :reduce rabbitmqcluster to 3 node on rabbitmq1 cluster"
     echo_warn "sh run.sh rabbitmq2    [--update|--check]     :setup new rabbitmq custer,set permissions,policies"
@@ -487,6 +519,11 @@ elif [[ $role == "controller" ]];then
     elif [[ $action == "--check" ]];then
         controller_check
     fi
+elif [[ $role == "pacemaker" ]];then
+    if [[ $action == "--update" ]];then
+        pacemaker
+    elif [[ $action == "--check" ]];then
+        pacemaker_check
 elif [[ $role == "mariadb" ]];then
     if [[ $action == "--update" ]];then
         mariadb

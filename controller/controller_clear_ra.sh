@@ -31,6 +31,8 @@ clear_pacemaker_ra(){
     crm resource stop p_mysql
     for name in `nodes 'controller|mariadb|rabbitmq' 4`;do
         crm configure delete clone_p_mysql-on-$name
+        crm configure delete clone_p_haproxy-on-$name
+        crm configure delete clone_ping_vip__public-on-$name
     done
     crm configure delete clone_p_mysql
     crm configure delete p_mysql
