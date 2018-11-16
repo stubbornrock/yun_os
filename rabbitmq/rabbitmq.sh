@@ -53,18 +53,20 @@ update_rabbitmq_config(){
 add_rabbitmq_nodes(){
     cluster_nodes="$1"
     bootstrap=$2
-    update_rabbitmq_config $cluster_nodes
 
     hostname=`hostname -s`
     rabbitmq_node="'rabbit@$hostname'"
     if $bootstrap;then
+        update_rabbitmq_config "$rabbitmq_node"
         systemctl restart rabbitmq-server
         rabbit_password=`egrep ^rabbit_password /etc/nova/nova.conf | cut -d'=' -f2`
         rabbitmqctl add_user nova $rabbit_password
         rabbitmqctl set_user_tags nova administrator
         rabbitmqctl set_permissions -p / nova '.*' '.*' '.*'
         rabbitmqctl set_policy -p / ha-two  "." '{"ha-mode":"exactly","ha-params":2,"ha-sync-mode":"automatic"}'
+        update_rabbitmq_config $cluster_nodes
     else
+        update_rabbitmq_config $cluster_nodes
         systemctl restart rabbitmq-server
         #rabbitmqctl stop_app
         #rabbitmqctl join_cluster $first_node
