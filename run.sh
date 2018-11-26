@@ -131,7 +131,11 @@ function _restart_corosync_service(){
     Note "Restart corosync service ..."
     for pxe_ip in `nodes controller 2`;do
         echo_info "---------- [controller:$pxe_ip] ----------"
-        ssh $pxe_ip "systemctl restart corosync"
+        ssh $pxe_ip "systemctl stop corosync pacemaker"
+    done
+    for pxe_ip in `nodes controller 2`;do
+        echo_info "---------- [controller:$pxe_ip] ----------"
+        ssh $pxe_ip "systemctl start corosync pacemaker"
     done
 }
 pacemaker(){
