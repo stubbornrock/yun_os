@@ -23,10 +23,10 @@ systemd:
     #- neutron-l3-agent
     #- neutron-dhcp-agent
     #- neutron-metadata-agent
+    #- neutron-openvswitch-agent
     - neutron-lbaas-agent
     - neutron-lbaasv2-agent
     - neutron-server
-    - neutron-openvswitch-agent
     - neutron-linuxbridge-cleanup
     - neutron-netns-cleanup
     - neutron-ovs-cleanup
